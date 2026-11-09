@@ -1,6 +1,6 @@
 # 🐙 KRAKEN
 
-**Strikeback Tech LLC — Northern Colorado**
+**Strikebacktech — Northern Colorado**
 A touch-first Raspberry Pi pentest, SDR, and RF command deck. One app: every
 networking & RF tool a Pi can run, a gqrx-class signal analyzer, licensed-HAM
 transmit, device flashing, geofencing, a field notebook, and a stats dashboard —
