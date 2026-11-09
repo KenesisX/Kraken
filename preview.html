@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>RaspyJack-X — KITSUNE UI preview</title>
+<style>
+  :root{
+    --accent:#ff1f3d; --accent-dim:#b3001b; --accent2:#ff5c6c; --amber:#ffb648;
+    --bg:#0a0a0d; --raised:#111116; --tile:#15151b; --tile-hot:#2a0e14;
+    --fg:#f5f5f7; --muted:#8a8a93;
+    --mono:"DejaVu Sans Mono","Courier New",monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#000;color:var(--fg);font-family:system-ui,sans-serif;
+       display:flex;flex-direction:column;align-items:center;gap:14px;padding:24px}
+  h1{font-family:var(--mono);color:var(--accent);font-size:16px;letter-spacing:1px}
+  .caption{color:var(--muted);font-size:13px;max-width:820px;text-align:center;line-height:1.5}
+  code{color:var(--accent2)}
+  .screen{width:800px;height:480px;background:var(--bg);border:2px solid var(--accent);
+          border-radius:10px;overflow:hidden;display:flex;flex-direction:column;
+          box-shadow:0 0 40px rgba(255,31,61,.25)}
+  .status{height:44px;background:var(--raised);border-bottom:2px solid var(--accent);
+          display:flex;align-items:center;gap:18px;padding:0 14px;
+          font-family:var(--mono);font-size:13px;color:var(--muted)}
+  .status b{color:var(--fg);font-weight:600}
+  .quip{color:var(--accent2);font-style:italic;margin-left:auto}
+  .clock{color:var(--fg);font-weight:600;margin-left:18px}
+  .body{flex:1;display:flex;padding:10px;gap:10px;min-height:0}
+  .rail{width:104px;display:flex;flex-direction:column;gap:7px;overflow-y:auto}
+  .rail::-webkit-scrollbar{width:8px}
+  .rail::-webkit-scrollbar-thumb{background:var(--accent-dim);border-radius:6px}
+  .mascot{display:flex;justify-content:center;margin-bottom:4px}
+  .tab{min-height:44px;border-radius:6px;background:var(--tile);border:1px solid #2a2a33;
+       font-family:var(--mono);font-size:12px;color:var(--fg);display:flex;
+       flex-direction:column;align-items:center;justify-content:center;line-height:1.3}
+  .tab.active{background:var(--accent-dim);border:1px solid var(--accent);color:#fff;font-weight:700}
+  .right{flex:1;display:flex;flex-direction:column;gap:10px;min-width:0}
+  .title{font-family:var(--mono);font-size:17px;font-weight:700;color:var(--accent)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .tool{min-height:52px;background:var(--tile);border:1px solid #2a2a33;
+        border-left:3px solid var(--accent-dim);border-radius:6px;color:var(--fg);
+        font-size:14px;display:flex;align-items:center;padding:0 12px}
+  .tool .warn{color:var(--accent);margin-right:7px}
+  .console{flex:1;background:#050506;border:1px solid var(--accent-dim);border-radius:6px;
+           font-family:var(--mono);font-size:12px;color:#e6e6ea;padding:10px;
+           overflow:hidden;white-space:pre-wrap;line-height:1.45;min-height:120px}
+  .console .p{color:var(--accent2)} .console .ok{color:#7CFC9B}
+  .console .dim{color:var(--muted)} .console .red{color:var(--accent)}
+  .ctl{display:flex;gap:8px;align-items:center}
+  .crumb{flex:1;color:var(--muted);font-family:var(--mono);font-size:12px}
+  .btn{min-height:40px;min-width:54px;border-radius:6px;background:var(--tile);
+       border:1px solid #2a2a33;color:var(--fg);font-size:13px;padding:0 12px}
+  .btn.danger{border:1px solid var(--accent);color:var(--accent)}
+  .watch{width:200px;height:200px;border-radius:50%;background:var(--bg);
+         border:3px solid var(--accent);display:flex;flex-direction:column;
+         align-items:center;justify-content:center;gap:5px;font-family:var(--mono);
+         box-shadow:0 0 30px rgba(255,31,61,.3);padding:18px;text-align:center}
+</style>
+</head>
+<body>
+
+  <!-- fox logo defined once, reused everywhere -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="fox" viewBox="0 0 200 200">
+      <defs>
+        <radialGradient id="halo" cx="48%" cy="58%" r="55%">
+          <stop offset="0" stop-color="#ff1f3d" stop-opacity="0.35"/>
+          <stop offset="0.6" stop-color="#b3001b" stop-opacity="0.15"/>
+          <stop offset="1" stop-color="#b3001b" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="spark" cx="50%" cy="50%" r="50%">
+          <stop offset="0" stop-color="#ffe9a6" stop-opacity="0.95"/>
+          <stop offset="0.5" stop-color="#ff6a1f" stop-opacity="0.55"/>
+          <stop offset="1" stop-color="#ff1f3d" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <circle cx="96" cy="118" r="98" fill="url(#halo)"/>
+      <circle cx="94" cy="132" r="52" fill="none" stroke="#ff1f3d" stroke-width="13" opacity="0.30"/>
+      <circle cx="94" cy="132" r="52" fill="#140406"/>
+      <circle cx="94" cy="132" r="52" fill="none" stroke="#ff3b52" stroke-width="4.5"/>
+      <circle cx="94" cy="132" r="52" fill="none" stroke="#ffd0d6" stroke-width="1.2" opacity="0.5"/>
+      <ellipse cx="70" cy="150" rx="10" ry="6" fill="#ff5c6c" opacity="0.45" transform="rotate(-35 70 150)"/>
+      <ellipse cx="58" cy="166" rx="5" ry="3" fill="#ff5c6c" opacity="0.4" transform="rotate(-35 58 166)"/>
+      <g stroke-linecap="round">
+        <line x1="63" y1="101" x2="125" y2="163" stroke="#ff1f3d" stroke-width="11" opacity="0.30"/>
+        <line x1="125" y1="101" x2="63" y2="163" stroke="#ff1f3d" stroke-width="11" opacity="0.30"/>
+        <line x1="63" y1="101" x2="125" y2="163" stroke="#ff3b52" stroke-width="5.5"/>
+        <line x1="125" y1="101" x2="63" y2="163" stroke="#ff3b52" stroke-width="5.5"/>
+        <line x1="63" y1="101" x2="125" y2="163" stroke="#ffd0d6" stroke-width="1.5" opacity="0.6"/>
+        <line x1="125" y1="101" x2="63" y2="163" stroke="#ffd0d6" stroke-width="1.5" opacity="0.6"/>
+      </g>
+      <path d="M78 86 L110 86 L104 62 L84 62 Z" fill="#140406" stroke="#ff1f3d" stroke-width="9" opacity="0.30"/>
+      <path d="M78 86 L110 86 L104 62 L84 62 Z" fill="#140406" stroke="#ff3b52" stroke-width="3.5" stroke-linejoin="round"/>
+      <path d="M82 75 L106 75" stroke="#ff5c6c" stroke-width="2.5" stroke-linecap="round"/>
+      <ellipse cx="94" cy="62" rx="10" ry="3.2" fill="#140406" stroke="#ff3b52" stroke-width="2.5"/>
+      <path d="M94 60 C 102 40 120 50 138 26" fill="none" stroke="#ff1f3d" stroke-width="9" opacity="0.30" stroke-linecap="round"/>
+      <path d="M94 60 C 102 40 120 50 138 26" fill="none" stroke="#ff6a1f" stroke-width="3.5" stroke-linecap="round"/>
+      <circle cx="140" cy="22" r="22" fill="url(#spark)"/>
+      <g stroke-linecap="round">
+        <line x1="140" y1="22" x2="170" y2="6" stroke="#ff8a1f" stroke-width="2" opacity="0.85"/>
+        <line x1="140" y1="22" x2="166" y2="42" stroke="#ff1f3d" stroke-width="2" opacity="0.75"/>
+        <line x1="140" y1="22" x2="150" y2="0" stroke="#ffd36a" stroke-width="1.6" opacity="0.85"/>
+        <line x1="140" y1="22" x2="112" y2="10" stroke="#ff8a1f" stroke-width="1.6" opacity="0.7"/>
+      </g>
+      <path d="M140 0 L148 16 L164 22 L148 28 L140 44 L132 28 L116 22 L132 16 Z" fill="#ff1f3d" opacity="0.75"/>
+      <path d="M140 7 L146 18 L156 22 L146 26 L140 37 L134 26 L124 22 L134 18 Z" fill="#ffb648"/>
+      <circle cx="140" cy="22" r="3.6" fill="#fff6e6"/>
+      <g fill="#ffb648">
+        <circle cx="164" cy="12" r="1.8" opacity="0.85"/><circle cx="158" cy="40" r="1.6" opacity="0.8"/>
+        <circle cx="118" cy="8" r="1.5" opacity="0.75"/><circle cx="176" cy="26" r="1.5" opacity="0.7"/>
+      </g>
+    </symbol>
+  </svg>
+
+  <svg width="190" height="190"><use href="#fox"/></svg>
+  <h1>RASPYJACK-X // KITSUNE BUILD</h1>
+
+  <div class="screen">
+    <div class="status">
+      <span>🖥 <b>kitsune</b></span>
+      <span>🌐 <b>eth0:10.50.0.14</b> +1</span>
+      <span>⚡ <b>22%</b></span>
+      <span>🌡 <b>48°C</b></span>
+      <span>🔋 <b>87%</b></span>
+      <span class="quip">the fox sees every port.</span>
+      <span class="clock">19:34:02</span>
+    </div>
+    <div class="body">
+      <div class="rail">
+        <div class="mascot"><svg width="84" height="84"><use href="#fox"/></svg></div>
+        <div class="tab">ᚱ<span>Recon</span></div>
+        <div class="tab active">✴<span>Scan</span></div>
+        <div class="tab">∞<span>Web</span></div>
+        <div class="tab">✶<span>Wireless</span></div>
+        <div class="tab">✷<span>RogueAP</span></div>
+        <div class="tab">ᛒ<span>Bluetooth</span></div>
+        <div class="tab">✜<span>Network</span></div>
+        <div class="tab">☥<span>Passwords</span></div>
+        <div class="tab">✞<span>AD</span></div>
+        <div class="tab">✕<span>Exploit</span></div>
+        <div class="tab">ᛉ<span>SDR</span></div>
+        <div class="tab">✠<span>Loot</span></div>
+        <div class="tab">ᛟ<span>System</span></div>
+      </div>
+      <div class="right">
+        <div class="title">✴  Scan</div>
+        <div class="grid">
+          <div class="tool">Fast top-ports</div>
+          <div class="tool"><span class="warn">⚠</span>Full TCP + scripts</div>
+          <div class="tool"><span class="warn">⚠</span>UDP top-50</div>
+          <div class="tool"><span class="warn">⚠</span>Vuln scripts</div>
+          <div class="tool"><span class="warn">⚠</span>masscan subnet</div>
+          <div class="tool">SMB enum</div>
+        </div>
+        <div class="console"><span class="red">RaspyJack-X  ·  engagement: acme-internal-nov</span>
+<span class="dim">Scope guard : 10.50.0.0/16</span>
+<span class="dim">Loot folder : ~/loot/acme-internal-nov</span>
+<span class="p">$ nmap -T4 -F 10.50.0.14</span>
+Starting Nmap 7.94 ( https://nmap.org )
+Nmap scan report for 10.50.0.14
+Host is up (0.0021s latency).
+PORT     STATE SERVICE
+22/tcp   open  ssh
+80/tcp   open  http
+445/tcp  open  microsoft-ds
+<span class="ok">[=] Exited with code 0.</span></div>
+        <div class="ctl">
+          <span class="crumb">done (0) · logged → session-20261107-1934.log</span>
+          <button class="btn danger">■ Stop</button>
+          <button class="btn">Clear</button>
+          <button class="btn">⟳</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h1 style="margin-top:10px">GALAXY WATCH COMPANION</h1>
+  <div style="display:flex;gap:28px;align-items:center;flex-wrap:wrap;justify-content:center">
+    <div class="watch">
+      <svg width="40" height="40"><use href="#fox"/></svg>
+      <div style="font-size:11px;color:var(--muted)">eng <b style="color:var(--fg)">acme</b></div>
+      <div style="font-size:11px;color:var(--muted)">🌡<b style="color:var(--fg)">48°</b> 🔋<b style="color:var(--fg)">87%</b></div>
+      <div style="font-size:11px;color:var(--accent)">▶ Fast top-ports</div>
+      <div style="margin-top:2px;border:2px solid var(--accent);border-radius:16px;
+                  padding:4px 18px;font-size:12px;font-weight:700">■ STOP</div>
+    </div>
+    <div class="caption" style="max-width:360px;text-align:left">
+      <b style="color:var(--accent2)">On your wrist:</b> the companion pushes an alert when a scan
+      finishes, a host is found, an <b>out-of-scope attempt is blocked</b>, or the battery drops —
+      each with a <b>Stop</b> button that reaches the Pi. Or open <code>http://&lt;pi&gt;:8088</code>
+      for this live round-screen control. No Android app — it rides ntfy + the Pi's HTTP server.
+    </div>
+  </div>
+
+  <div class="caption">
+    KITSUNE skin at 800×480 — neon bomb-with-X logo, rune/symbol tab icons, a <b>scrollable</b>
+    13-tab menu (drag to scroll on the touchscreen) and <b>103 tools</b> spanning Kali / Parrot /
+    Athena / BlackArch plus Evil-Cardputer-style WiFi attacks, all scope-guarded and logged.
+  </div>
+</body>
+</html>

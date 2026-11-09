@@ -1,0 +1,29 @@
+{
+  "name": "kraken",
+  "productName": "Kraken",
+  "version": "1.0.0",
+  "description": "Kraken — red-team command deck (web / desktop / Android / RPi)",
+  "main": "electron-main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist:win": "electron-builder --win --x64",
+    "dist:linux": "electron-builder --linux AppImage deb",
+    "cap:init": "cap init Kraken com.strikeback.kraken --web-dir=.",
+    "cap:add:android": "cap add android",
+    "cap:sync": "cap copy && cap sync",
+    "android:aab": "cd android && ./gradlew bundleRelease"
+  },
+  "build": {
+    "appId": "com.strikeback.kraken",
+    "files": ["**/*.html", "electron-main.js", "!android/**", "!node_modules/**"],
+    "win": { "target": "nsis", "artifactName": "Kraken-Setup-${version}.exe" },
+    "linux": { "target": ["AppImage", "deb"] }
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3",
+    "@capacitor/cli": "^6.1.0",
+    "@capacitor/core": "^6.1.0",
+    "@capacitor/android": "^6.1.0"
+  }
+}

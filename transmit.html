@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kraken · Transmit</title>
+<style>
+  :root{--accent:#ff1f3d;--dim:#b3001b;--accent2:#ff5c6c;--amber:#ffb648;--gold:#ffd700;--bg:#0a0a0d;--raised:#111116;--tile:#15151b;--hot:#2a0e14;--fg:#f5f5f7;--muted:#8a8a93;--ok:#2fe24a;--mono:"DejaVu Sans Mono","Courier New",monospace;--wm:.06}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{color:var(--fg);font-family:system-ui,sans-serif;display:flex;justify-content:center;padding:6px}
+  .device{position:relative;width:100%;max-width:980px;height:min(600px,calc(100dvh - 18px));background:rgba(10,10,13,.92);border:2px solid var(--accent);border-radius:12px;overflow:hidden;box-shadow:0 0 40px rgba(255,31,61,.25);display:flex;flex-direction:column}
+  .status{height:38px;background:var(--raised);border-bottom:2px solid var(--accent);display:flex;align-items:center;gap:12px;padding:0 12px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .status b{color:var(--fg)}.pg{margin-left:auto;color:var(--accent);font-weight:800;border:2px solid var(--accent);border-radius:6px;padding:1px 9px}
+  .body{flex:1;overflow:auto;padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:720px){.body{grid-template-columns:1fr}}
+  .panel{background:var(--raised);border:1px solid #23232c;border-radius:10px;padding:12px}
+  .panel.span{grid-column:1/-1}
+  h3{font-family:var(--mono);color:var(--accent);font-size:13px;margin-bottom:9px;border-bottom:1px solid var(--dim);padding-bottom:5px;display:flex;align-items:center;gap:8px}
+  label{display:block;font-size:11px;color:var(--muted);font-family:var(--mono);margin:8px 0 3px}
+  select,input[type=text],input[type=number]{width:100%;background:#050506;border:1px solid #2a2a33;color:var(--fg);font-family:var(--mono);font-size:13px;border-radius:6px;padding:7px 8px}
+  .row{display:flex;gap:8px}.row>*{flex:1}
+  .btn{min-height:40px;border-radius:8px;background:var(--tile);border:1px solid #2a2a33;color:var(--fg);font-family:var(--mono);font-size:13px;cursor:pointer;padding:0 14px}
+  .btn:hover{border-color:var(--accent2)}
+  /* ---- TX SAFETY INTERLOCK ---- */
+  .arm{width:100%;min-height:62px;border-radius:12px;border:2px solid #2a2a33;background:var(--tile);color:var(--muted);
+    font-family:var(--mono);font-size:16px;font-weight:800;letter-spacing:1px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;transition:all .18s}
+  .arm small{font-size:10px;font-weight:400;letter-spacing:0}
+  .arm.armed{border-color:var(--gold);color:#120d00;background:linear-gradient(180deg,#ffe96b,var(--gold));
+    box-shadow:0 0 26px rgba(255,215,0,.75),0 0 60px rgba(255,215,0,.35);animation:pulse 1.6s ease-in-out infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 22px rgba(255,215,0,.6)}50%{box-shadow:0 0 40px rgba(255,215,0,.95),0 0 80px rgba(255,215,0,.4)}}
+  /* TX action buttons: inert (look like the rest) until armed */
+  .tx{min-height:44px;border-radius:9px;font-family:var(--mono);font-size:14px;font-weight:700;cursor:not-allowed;
+    background:var(--tile);border:1px solid #2a2a33;color:var(--muted);width:100%;padding:0 14px;transition:all .15s}
+  .tx[disabled]{opacity:.6}
+  body.armed .tx{cursor:pointer;color:#120d00;background:linear-gradient(180deg,#ffe96b,var(--gold));border-color:var(--gold);opacity:1;box-shadow:0 0 14px rgba(255,215,0,.5)}
+  body.armed .tx:hover{filter:brightness(1.08)}
+  /* streaming to your own display isn't RF transmit — enabled green without the gold arm */
+  .tx.stream{cursor:pointer;opacity:1;color:#cfe;background:#06210f;border-color:var(--ok)}
+  .tx.stream:hover{filter:brightness(1.1)}
+  .note{font-size:11px;color:var(--muted);line-height:1.5;margin-top:8px}
+  .warn{background:#1a0f00;border:1px solid var(--amber);border-radius:8px;padding:9px 11px;font-size:11.5px;color:var(--amber);line-height:1.5}
+  .nope{background:#160608;border:1px solid var(--dim);border-radius:8px;padding:9px 11px;font-size:11.5px;color:#ff9aa6;line-height:1.5}
+  .dev{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;padding:6px 8px;border:1px solid #23232c;border-radius:7px;background:#0d0d12;margin-top:6px}
+  .dot{width:9px;height:9px;border-radius:50%;background:#444}.dot.on{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+  .chip{display:inline-block;font-family:var(--mono);font-size:10px;color:var(--amber);border:1px solid var(--dim);border-radius:10px;padding:1px 7px;margin:2px 2px 0 0}
+  .log{background:#050506;border:1px solid var(--dim);border-radius:8px;font-family:var(--mono);font-size:11.5px;color:#dfe;padding:8px;height:120px;overflow:auto;white-space:pre-wrap;line-height:1.45}
+  .prev{max-width:100%;max-height:120px;border:1px solid #2a2a33;border-radius:6px;margin-top:6px;display:none}
+  .rxtx{display:flex;gap:6px;margin-top:8px}
+  .rxtx button{flex:1;min-height:34px;border-radius:7px;font-family:var(--mono);font-size:12px;font-weight:700;cursor:pointer;background:var(--tile);border:1px solid #2a2a33;color:var(--muted)}
+  .rxtx button.sel[data-m=rx]{background:#06210f;border-color:var(--ok);color:var(--ok)}
+  .rxtx button.sel[data-m=tx]{background:#1a0f00;border-color:var(--gold);color:var(--gold)}
+</style>
+</head>
+<body>
+<div class="device">
+  <div class="status">📡 <b>TRANSMIT</b> · licensed amateur (HAM) · <span id="st">RX — safe</span>
+    <span class="pg">6 / TX</span></div>
+  <div class="body">
+
+    <!-- SAFETY -->
+    <div class="panel span">
+      <h3>⚠ TX SAFETY INTERLOCK</h3>
+      <button class="arm" id="arm" onclick="toggleArm()">⬤ TX SAFETY: DISARMED
+        <small>click to arm — nothing can transmit until this glows gold</small></button>
+      <div class="rxtx" id="rxtx">
+        <button data-m="rx" class="sel" onclick="setMode('rx')">◉ RX (receive)</button>
+        <button data-m="tx" onclick="setMode('tx')">▲ TX (transmit)</button>
+      </div>
+      <div class="note">Master arm is independent of the RX/TX selector: you must <b>arm</b> AND select <b>TX</b> AND enter a
+        valid callsign before any transmit control works. Disarm returns every button to inert grey.</div>
+    </div>
+
+    <!-- OPERATOR + DEVICE -->
+    <div class="panel">
+      <h3>🎫 Operator &amp; device</h3>
+      <label>Amateur callsign (required to transmit)</label>
+      <input type="text" id="call" placeholder="e.g. KD0XXX" oninput="refresh()">
+      <label>Transmit device</label>
+      <select id="txdev" onchange="refresh()">
+        <option value="">— none synced —</option>
+      </select>
+      <div class="dev"><span class="dot" id="hdot"></span><span id="hinfo">HackRF: not synced</span>
+        <button class="btn" style="min-height:28px;font-size:11px;margin-left:auto" onclick="syncHackRF()">Sync</button></div>
+      <div class="note">Supported TX-capable: HackRF One &amp; H2M/H3M/H4M-class transceivers, PortaPack. RX-only devices
+        (RTL-SDR v3/v4/blog, Panda, AWUS036AC) stay receive-only and can't be selected here.</div>
+    </div>
+
+    <!-- BAND + MODE -->
+    <div class="panel">
+      <h3>🎚 Band &amp; mode (amateur allocations only)</h3>
+      <label>Amateur band</label>
+      <select id="band" onchange="bandChange()"></select>
+      <div class="row">
+        <div><label>Frequency (MHz)</label><input type="number" id="freq" step="0.001" oninput="refresh()"></div>
+        <div><label>Power (dBm, capped)</label><input type="number" id="pwr" value="10" min="-40" max="20"></div>
+      </div>
+      <label>Mode</label>
+      <select id="mode" onchange="refresh()">
+        <option value="CW">CW (Morse)</option><option value="Tone">Steady tone / carrier test</option>
+        <option value="FM">FM voice</option><option value="AFSK">AFSK / packet (APRS-style)</option>
+        <option value="SSTV">SSTV (image)</option>
+      </select>
+      <div id="bandhint" class="note"></div>
+    </div>
+
+    <!-- IMAGE TX / STREAMING -->
+    <div class="panel">
+      <h3>🖼 Image transmission &amp; streaming (phone / Pi / desktop)</h3>
+      <label>Upload image to send</label>
+      <input type="file" id="img" accept="image/*" onchange="loadImg(event)" style="font-size:11px;color:var(--muted)">
+      <img class="prev" id="prev">
+      <div class="row">
+        <div><label>Method</label>
+          <select id="imeth" onchange="methChange()">
+            <optgroup label="Analog SSTV (HAM RF)"><option value="sstv">SSTV — Robot/Martin/Scottie/PD</option></optgroup>
+            <optgroup label="Digital image over RF (HAM)">
+              <option value="hamdrm">Digital SSTV (HamDRM) — full file</option>
+              <option value="wefax">WEFAX (facsimile)</option>
+              <option value="datv">ATV / DATV (fast-scan video)</option>
+              <option value="kgstv">KG-STV</option><option value="pasokon">PASOKON TV</option><option value="mscan">MSCAN TV</option>
+            </optgroup>
+            <optgroup label="Network streaming (your own displays)">
+              <option value="wifi">Wi-Fi (JPEG / RTSP / WebM)</option>
+              <option value="lora">LoRa (compressed JPEG)</option>
+              <option value="ble">BLE (short-range push)</option>
+            </optgroup>
+          </select></div>
+        <div><label>Target display</label>
+          <select id="disp"><option>PC / phone app</option><option>TV (HDMI / video)</option><option>LED matrix (RGB/pixel bus)</option></select></div>
+      </div>
+      <div id="smWrap"><label>SSTV sub-mode</label>
+        <select id="sstv"><option>Robot 36</option><option>Martin M1</option><option>Scottie S1</option><option>PD120</option><option>PD180</option></select></div>
+      <div class="note" id="methNote"></div>
+      <details style="margin-top:6px"><summary style="cursor:pointer;color:var(--amber);font-family:var(--mono);font-size:11px">image-mode reference</summary>
+        <div class="note" style="margin-top:5px">
+          <b>SSTV</b> — analog still image, pixel brightness→audio tone over a ~3 kHz SSB channel (Martin, Robot36, Scottie, PD).<br>
+          <b>Digital SSTV (HamDRM)</b> — sends the whole file (JPEG2000/PNG), higher res, no pixel smear (QSSTV/EasyPal).<br>
+          <b>WEFAX</b> — analog weather-fax; digitize to a screen (fldigi).<br>
+          <b>ATV/DATV</b> — fast-scan real-time video (NTSC/PAL or digital YUV/RGB) to a TV or matrix.<br>
+          <b>KG-STV / PASOKON / MSCAN</b> — digital image/video modes rendered on a PC/phone.<br>
+          <b>Wi-Fi / LoRa / BLE</b> — stream JPEG/RTSP/WebM to your own screen; LoRa for long-range compressed stills, BLE for short range.<br>
+          Pick a mode whose output your display can render (raw video, JPEG file, or digital stream).</div>
+      </details>
+    </div>
+
+    <!-- TX CONTROLS -->
+    <div class="panel span">
+      <h3>▲ Transmit</h3>
+      <div class="row">
+        <button class="tx" id="txMsg" disabled onclick="doTX('message')">Send CW / voice / AFSK</button>
+        <button class="tx" id="txImg" disabled onclick="doTX('image')">Encode &amp; send image</button>
+        <button class="tx" id="txId"  disabled onclick="doTX('id')">TX station ID (callsign)</button>
+      </div>
+      <div class="warn" style="margin-top:10px">Transmitting is legal only for a licensed operator, on the amateur bands above,
+        within your licence class &amp; power limits, with station ID. You are responsible for compliance (FCC Part 97 / your
+        national equivalent). Kraken caps power and refuses out-of-band frequencies, but the licence and the airtime are yours.</div>
+      <div class="nope" style="margin-top:8px"><b>Not included, by design:</b> replay / copy / clone / "replicate" of captured
+        signals, and any transmit on cellular (2G–5G/GSM), GNSS, or satphone spectrum. Retransmitting captured RF and
+        transmitting on licensed cellular/satellite bands are illegal regardless of context. This page is clean HAM TX only —
+        Signal (page 3) still does full RX/detect/measure on every band.</div>
+      <div class="log" id="log" style="margin-top:10px">TX log — disarmed.\n</div>
+    </div>
+
+    <!-- CONCURRENT CHANNELS -->
+    <div class="panel span">
+      <h3>⇅ Concurrent channels — full-duplex / multi-radio (RX+TX, TX+TX, different freqs &amp; modes)</h3>
+      <div class="row">
+        <select id="chDir"><option value="RX">RX</option><option value="TX">TX</option></select>
+        <select id="chDev"></select>
+        <input type="number" id="chFreq" step="0.001" placeholder="freq MHz">
+        <input type="text" id="chMode" placeholder="mode (FM/FT8/SSTV/ADS-B…)">
+        <button class="btn" style="flex:0 0 auto" onclick="addChan()">+ Add</button>
+      </div>
+      <div id="chans" style="margin-top:8px"></div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn" onclick="startChans()">▶ Start all</button>
+        <button class="btn" onclick="stopChans()">■ Stop all</button>
+      </div>
+      <div class="warn" style="margin-top:8px">Simultaneous operation needs <b>one physical radio per active channel</b>, or a full-duplex SDR
+        (USRP / BladeRF / LimeSDR). A single HackRF is <b>half-duplex</b> — it can't TX and RX at the same instant, so give each
+        concurrent channel its own device (⚠ flags a shared radio). TX channels still require the gold arm + a valid callsign + an
+        amateur band; RX channels run freely on any frequency.</div>
+      <div class="log" id="chlog" style="margin-top:8px">No channels running.\n</div>
+    </div>
+
+    <!-- BAOFENG / CHIRP -->
+    <div class="panel span">
+      <h3>📻 Baofeng / CHIRP — program · receive · copy · transmit</h3>
+      <div class="row">
+        <select id="brModel"><option>Baofeng UV-5R</option><option>UV-82</option><option>BF-F8HP</option><option>UV-9R Plus</option><option>GMRS-V1</option><option>generic (CHIRP)</option></select>
+        <input type="text" id="brPort" value="/dev/ttyUSB0">
+        <button class="btn" onclick="chirpCmd('read')">⇣ Read</button>
+        <button class="btn" onclick="chirpCmd('write')">⇡ Write</button>
+        <button class="btn" onclick="chirpCmd('copy')">⿻ Copy A→B</button>
+      </div>
+      <div id="brCmd" style="background:#050506;border:1px solid #2a2a33;border-radius:7px;font-family:var(--mono);font-size:11px;color:var(--amber);padding:8px;white-space:pre-wrap;line-height:1.5;margin-top:6px;user-select:all"></div>
+      <div class="row" style="margin-top:8px">
+        <input type="text" id="chName" placeholder="name" style="max-width:110px">
+        <input type="number" id="chRx" step="0.001" placeholder="RX MHz">
+        <input type="number" id="chTx" step="0.001" placeholder="TX MHz">
+        <select id="chTone"></select>
+        <button class="btn" style="flex:0 0 auto" onclick="addCh()">+ ch</button>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <button class="btn" onclick="loadGMRS()">Load GMRS/FRS 1–22</button>
+        <button class="tx" id="brTx" disabled onclick="radioTX()">▲ TX selected channel</button>
+      </div>
+      <div id="chTable" style="margin-top:8px"></div>
+      <div class="note">CHIRP (free, open-source) reads a radio's codeplug over a USB programming cable and writes it to another —
+        this copies <b>channel programming</b> (frequency, CTCSS <b>T-CTCS</b> / DCS <b>T-DCS</b> tone, power, offset), not
+        over-the-air signals. TX keys the radio only when armed on an amateur/GMRS channel you're licensed for.</div>
+    </div>
+
+    <!-- MESH / VOIP / BURST -->
+    <div class="panel span">
+      <h3>🌐 Ad-hoc · Mesh · VoIP (Call-over-IP) · Burst</h3>
+      <div class="row">
+        <select id="mesh"><option>Meshtastic (LoRa mesh)</option><option>AREDN (ham Wi-Fi mesh)</option><option>B.A.T.M.A.N. ad-hoc</option><option>APRS (AX.25 packet)</option><option>SVXLink / EchoLink (ham VoIP)</option><option>AllStarLink</option></select>
+        <button class="btn" style="flex:0 0 auto" onclick="meshNote()">Show setup</button>
+      </div>
+      <div class="note" id="meshNoteBox"></div>
+      <div class="row" style="margin-top:8px">
+        <input type="text" id="sipServer" placeholder="SIP server (sip.provider.net)">
+        <input type="text" id="sipUser" placeholder="SIP user / number">
+        <input type="text" id="dial" placeholder="dial: number or sip:uri">
+        <button class="btn" style="flex:0 0 auto" onclick="voip('call')">📞 Call</button>
+        <button class="btn" style="flex:0 0 auto" onclick="voip('text')">✉ Text</button>
+      </div>
+      <div class="note">Standard SIP/VoIP via <code>baresip</code>/<code>linphone</code> — calls &amp; texts over IP, optionally
+        through a privacy/VoIP number so your personal number isn't shown. Kraken does <b>not</b> spoof caller-ID or falsify
+        numbers — "anonymous" means a separate VoIP identity, never impersonation.</div>
+      <div class="row" style="margin-top:8px">
+        <select id="burstMode"><option>Packet burst (AX.25)</option><option>FT8 (15 s)</option><option>JS8Call</option><option>APRS beacon</option><option>CW ID burst</option></select>
+        <input type="text" id="burstMsg" placeholder="burst payload / message">
+        <button class="tx" id="burstTx" disabled onclick="burstTX()">⚡ Burst TX</button>
+        <button class="btn" style="flex:0 0 auto" onclick="burstRX()">◉ Burst RX</button>
+      </div>
+      <div class="log" id="commLog" style="margin-top:8px">comms idle.\n</div>
+    </div>
+
+  </div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+let armed=false,txmode='rx';
+// US amateur bands [name, lo, hi, default, note]
+const BANDS=[
+ ['160m (1.8–2.0)',1.8,2.0,1.840,'CW/SSB/digital'],['80m (3.5–4.0)',3.5,4.0,3.573,'FT8 3.573'],
+ ['60m (5.33–5.40)',5.3305,5.4035,5.3320,'channelized'],['40m (7.0–7.3)',7.0,7.3,7.074,'FT8 7.074'],
+ ['30m (10.1–10.15)',10.1,10.15,10.136,'digital only'],['20m (14.0–14.35)',14.0,14.35,14.074,'FT8 14.074'],
+ ['17m (18.068–18.168)',18.068,18.168,18.100,''],['15m (21.0–21.45)',21.0,21.45,21.074,''],
+ ['12m (24.89–24.99)',24.89,24.99,24.915,''],['10m (28.0–29.7)',28.0,29.7,28.074,'FT8 28.074'],
+ ['6m (50–54)',50.0,54.0,50.313,'FT8 50.313'],['2m (144–148)',144.0,148.0,146.520,'FM simplex 146.52'],
+ ['1.25m (222–225)',222.0,225.0,223.500,''],['70cm (420–450)',420.0,450.0,446.000,'FM simplex'],
+ ['33cm (902–928)',902.0,928.0,915.000,'also ISM — HAM use only here'],['23cm (1240–1300)',1240.0,1300.0,1296.100,'']
+];
+BANDS.forEach((b,i)=>{let o=document.createElement('option');o.value=i;o.textContent=b[0];$('band').appendChild(o);});
+function bandChange(){const b=BANDS[+$('band').value];$('freq').value=b[3];
+  $('bandhint').innerHTML='Edges <b>'+b[1]+'–'+b[2]+' MHz</b>. '+(b[4]?b[4]+'. ':'')+'Out-of-band entries are rejected.';refresh();}
+function inBand(){const b=BANDS[+$('band').value],f=+$('freq').value;return f>=b[1]&&f<=b[2];}
+function setMode(m){txmode=m;document.querySelectorAll('.rxtx button').forEach(x=>x.classList.toggle('sel',x.dataset.m===m));refresh();}
+function toggleArm(){armed=!armed;const a=$('arm');
+  a.classList.toggle('armed',armed);
+  a.firstChild.nodeValue=armed?'⬤ TX SAFETY: ARMED ':'⬤ TX SAFETY: DISARMED ';
+  if(!armed){setMode('rx');} refresh();
+  logln(armed?'*** ARMED — TX controls live. Select TX + valid callsign + in-band to key.':'*** DISARMED — all TX inert.');}
+function canTX(){return armed&&txmode==='tx'&&$('call').value.trim().length>=3&&$('txdev').value&&inBand();}
+const STREAM=['wifi','lora','ble'];
+function isStream(m){return STREAM.includes(m);}
+function methChange(){const m=$('imeth').value;$('smWrap').style.display=(m==='sstv')?'block':'none';
+  const notes={sstv:'Encodes via pisstv/QSSTV; keys the radio only when armed on a HAM band.',
+    hamdrm:'Sends the whole image file (JPEG2000/PNG) via QSSTV/EasyPal HamDRM — HAM band, armed.',
+    wefax:'Analog facsimile via fldigi — HAM band, armed.',
+    datv:'Fast-scan ATV/DATV video (NTSC/PAL or digital) — HAM band, armed, wider bandwidth.',
+    kgstv:'KG-STV digital image — HAM band, armed.',pasokon:'PASOKON TV digital image — HAM band, armed.',mscan:'MSCAN TV — HAM band, armed.',
+    wifi:'Streams JPEG/RTSP/WebM over your LAN to your own screen — not RF transmit, no HAM band needed.',
+    lora:'Compressed JPEG over your LoRa link to your own receiver/display — point-to-point, your hardware.',
+    ble:'Short-range BLE push to your own phone/display — your hardware.'};
+  $('methNote').innerHTML=notes[m]||'';refresh();}
+function refresh(){
+  const ok=canTX();document.body.classList.toggle('armed',ok);
+  const m=$('imeth').value, stream=isStream(m);
+  $('txMsg').disabled=!ok;$('txId').disabled=!ok;
+  var _b=$('brTx');if(_b)_b.disabled=!ok;var _u=$('burstTx');if(_u)_u.disabled=!ok;
+  // image button: streaming to your own display needs only an image; RF image modes need the arm+band
+  const imgOk=!!imgData, txImgOk=imgOk&&(stream?true:ok);
+  $('txImg').disabled=!txImgOk;$('txImg').classList.toggle('stream',stream&&txImgOk&&!ok);
+  $('st').textContent=armed?(txmode==='tx'?(ok?'TX ARMED — '+(+$('freq').value).toFixed(3)+' MHz':'TX armed — blocked (callsign/device/band)'):'armed, RX selected'):'RX — safe';
+  $('st').style.color=ok?'var(--gold)':(armed?'var(--amber)':'var(--ok)');
+}
+function syncHackRF(){ // simulated detection; real app parses `hackrf_info`
+  const serial='0x'+Math.random().toString(16).slice(2,10).toUpperCase();
+  $('hdot').classList.add('on');$('hinfo').textContent='HackRF One synced · S/N '+serial+' · 1 MHz–6 GHz';
+  const sel=$('txdev');if(sel.options.length<2){['HackRF One','HackRF H2M/H3M/H4M-class','PortaPack (HackRF)'].forEach(n=>{let o=document.createElement('option');o.value=n;o.textContent=n;sel.appendChild(o);});}
+  sel.value='HackRF One';logln('HackRF synced ('+serial+'). TX-capable device available.');refresh();}
+let imgData=null;
+function loadImg(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{imgData=r.result;$('prev').src=imgData;$('prev').style.display='block';logln('Image loaded ('+(f.size/1024|0)+' KB) — ready to send.');refresh();};r.readAsDataURL(f);}
+function logln(s){const l=$('log');l.textContent+=new Date().toLocaleTimeString()+'  '+s+'\n';l.scrollTop=l.scrollHeight;}
+function doTX(kind){
+  const f=(+$('freq').value).toFixed(3),m=$('mode').value,p=$('pwr').value,cs=$('call').value.trim().toUpperCase();
+  if(kind==='image'){
+    const im=$('imeth').value,disp=$('disp').value,stream=isStream(im);
+    if(!imgData){logln('BLOCKED — load an image first.');return;}
+    if(!stream&&!canTX()){logln('BLOCKED — RF image modes need arm + TX + callsign + in-band.');return;}
+    const label=im==='sstv'?('SSTV '+$('sstv').value):im.toUpperCase();
+    if(stream){logln('⇢ STREAM '+label+' → '+disp+'  → '+hwCall('image',m,im)+'  (your own display, not RF)');}
+    else{logln('▲ TX '+label+' image @ '+f+' MHz, '+p+' dBm, '+cs+' → '+disp+'  → '+hwCall('image',m,im));}
+    const rec={t:Date.now(),type:'TX',band:(stream?im.toUpperCase():BANDS[+$('band').value][0]),freq:(stream?'':f),
+      mode:label,power:(stream?'':p),call:(stream?'':cs),note:label+' image → '+disp+(stream?' (stream)':''),img:imgData};
+    saveRec(rec);try{parent.postMessage({type:'rjxRecord',rec},'*');}catch(e){}return;
+  }
+  if(!canTX()){logln('BLOCKED — arm + TX + callsign + in-band required.');return;}
+  const detail=kind==='id'?('station ID '+cs):(m+' transmission');
+  logln('▲ TX '+detail+' @ '+f+' MHz, '+p+' dBm, '+cs+'  → hardware: '+hwCall(kind,m));
+  const rec={t:Date.now(),type:'TX',band:BANDS[+$('band').value][0],freq:f,mode:m,power:p,call:cs,note:detail,img:null};
+  saveRec(rec);try{parent.postMessage({type:'rjxRecord',rec},'*');}catch(e){}
+}
+function hwCall(kind,m,im){ // what the native app would invoke
+  if(kind==='image'){const map={sstv:'pisstv/QSSTV → hackrf_transfer',hamdrm:'QSSTV HamDRM / EasyPal → hackrf_transfer',
+    wefax:'fldigi (WEFAX) → hackrf_transfer',datv:'gnuradio DATV / leandvb → hackrf_transfer',
+    kgstv:'KG-STV → hackrf_transfer',pasokon:'PASOKON → hackrf_transfer',mscan:'MSCAN → hackrf_transfer',
+    wifi:'ffmpeg → RTSP/WebM over LAN',lora:'LoRa HAT → compressed JPEG',ble:'bluez → BLE GATT push'};return map[im]||'gnuradio';}
+  if(m==='CW')return 'cwdaemon / hackrf_transfer';
+  if(m==='AFSK')return 'direwolf → hackrf_transfer';
+  return 'gnuradio / hackrf_transfer';
+}
+function saveRec(rec){try{const a=JSON.parse(localStorage.getItem('krakenRecords')||'[]');a.push(rec);localStorage.setItem('krakenRecords',JSON.stringify(a));}catch(e){}}
+// ---- Baofeng / CHIRP ----
+const CTCSS=[67.0,69.3,71.9,74.4,77.0,79.7,82.5,85.4,88.5,91.5,94.8,97.4,100.0,103.5,107.2,110.9,114.8,118.8,123.0,127.3,131.8,136.5,141.3,146.2,151.4,156.7,162.2,167.9,173.8,179.9,186.2,192.8,203.5,210.7,218.1,225.7,233.6,241.8,250.3];
+const DCS=[23,25,31,32,43,47,51,54,65,71,72,73,74,114,115,116,125,131,132,134,143,152,155,156,162,165,172,174,205,223,226,243,244,245,251,261,263,265,271,306,311,315,331,343,346,351,364,365,371,411,412,413,423,431,432,445,464,465,466,503,506,516,532,546,565,606,612,624,627,631,632,654,662,664,703,712,723,731,732,734,743,754];
+function fillTones(){const s=$('chTone');s.innerHTML='<option value="">no tone</option>';
+  const g1=document.createElement('optgroup');g1.label='CTCSS (T-CTCS)';CTCSS.forEach(t=>{const o=document.createElement('option');o.value='C'+t;o.textContent=t.toFixed(1)+' Hz';g1.appendChild(o);});s.appendChild(g1);
+  const g2=document.createElement('optgroup');g2.label='DCS (T-DCS)';DCS.forEach(t=>{const o=document.createElement('option');o.value='D'+t;o.textContent='D'+String(t).padStart(3,'0');g2.appendChild(o);});s.appendChild(g2);}
+let chans2=[],chSel=-1;
+function tesc(s){return(s+'').replace(/[&<>]/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[x]));}
+function chirpCmd(mode){const m=$('brModel').value,p=$('brPort').value;let c='';
+  const slug=/uv-5r|f8hp/i.test(m)?'uv5r':/uv-82/i.test(m)?'uv82':/9r/i.test(m)?'uv9r':/gmrs/i.test(m)?'gmrsv1':'generic';
+  if(mode==='read')c='# CHIRP — read codeplug from radio\nchirp --download --radio='+slug+' --port '+p+' radioA.img\n# or GUI: Radio -> Download From Radio';
+  else if(mode==='write')c='# CHIRP — write codeplug to radio\nchirp --upload radioA.img --port '+p+'\n# or GUI: Radio -> Upload To Radio';
+  else c='# CHIRP copy A->B (duplicate your own radios):\nchirp --download --radio='+slug+' --port '+p+' radioA.img   # read source\nchirp --upload radioA.img --port '+p+'                    # write to target\n# copies channels + CTCSS/DCS tones, NOT over-air signals';
+  $('brCmd').textContent=c;}
+function addCh(){chans2.push({name:$('chName').value||('CH'+(chans2.length+1)),rx:$('chRx').value,tx:$('chTx').value||$('chRx').value,tone:$('chTone').value});
+  $('chName').value='';$('chRx').value='';$('chTx').value='';renderCh();}
+function loadGMRS(){const G=[['FRS1',462.5625],['FRS2',462.5875],['FRS3',462.6125],['FRS4',462.6375],['FRS5',462.6625],['FRS6',462.6875],['FRS7',462.7125],['GMRS8',467.5625],['GMRS9',467.5875],['GMRS10',467.6125],['GMRS11',467.6375],['GMRS12',467.6625],['GMRS13',467.6875],['GMRS14',467.7125],['GMRS15',462.5500],['GMRS16',462.5750],['GMRS17',462.6000],['GMRS18',462.6250],['GMRS19',462.6500],['GMRS20',462.6750],['GMRS21',462.7000],['GMRS22',462.7250]];
+  G.forEach(([n,f])=>chans2.push({name:n,rx:f.toFixed(4),tx:f.toFixed(4),tone:''}));renderCh();}
+function renderCh(){$('chTable').innerHTML=chans2.map((c,i)=>'<div class="dev" style="cursor:pointer;'+(i===chSel?'border-color:var(--gold)':'')+'" onclick="chSel='+i+';renderCh();refresh()"><span style="flex:1">'+tesc(c.name)+' · RX '+c.rx+' · TX '+c.tx+(c.tone?' · '+tesc(c.tone):'')+'</span><span class="x" style="cursor:pointer" onclick="event.stopPropagation();chans2.splice('+i+',1);renderCh()">✕</span></div>').join('')||'<div class="note">No channels. Add one or load GMRS/FRS.</div>';}
+function radioTX(){const L=$('commLog');if(!canTX()){clog(L,'BLOCKED — arm + callsign + in-band.');return;}
+  if(chSel<0){clog(L,'select a channel first');return;}const c=chans2[chSel];
+  clog(L,'▲ TX '+c.name+' RX '+c.rx+' TX '+c.tx+(c.tone?' tone '+c.tone:'')+' → baofeng (hamlib/rigctl)');rec2('TX',c.tx,'FM','Baofeng TX '+c.name);}
+// ---- mesh / voip / burst ----
+function meshNote(){const m=$('mesh').value,n={'Meshtastic (LoRa mesh)':'Meshtastic on a LoRa node (T-Beam/T-Deck): encrypted text mesh + GPS share. Flash via Devices page; config over serial/BLE.',
+  'AREDN (ham Wi-Fi mesh)':'AREDN firmware on ham Wi-Fi gear — high-speed mesh under your call-sign SSID. Carries data, VoIP, video (Part 97).',
+  'B.A.T.M.A.N. ad-hoc':'Linux batman-adv ad-hoc mesh on your Wi-Fi adapter (iw dev wlan set type ibss). Peer-to-peer, no access point.',
+  'APRS (AX.25 packet)':'direwolf software TNC → APRS beacons/messages on 144.39 (US). Position + short text.',
+  'SVXLink / EchoLink (ham VoIP)':'SVXLink links your radio/repeater to EchoLink/reflectors over IP — ham VoIP, licensed.',
+  'AllStarLink':'Asterisk-based ham VoIP linking nodes/repeaters over IP.'};$('meshNoteBox').textContent=n[m]||'';}
+function voip(kind){const s=$('sipServer').value,u=$('sipUser').value,d=$('dial').value,L=$('commLog');
+  if(!d){clog(L,'enter a number / SIP URI');return;}
+  clog(L,(kind==='call'?'📞 CALL ':'✉ TEXT ')+d+' via '+(s||'SIP')+' as '+(u||'anon')+' → baresip/linphone (over IP)');
+  rec2('NOTE',d,'VoIP',(kind==='call'?'VoIP call ':'VoIP text ')+d);}
+function burstTX(){const L=$('commLog');if(!canTX()){clog(L,'BLOCKED — arm + callsign + in-band for burst TX.');return;}
+  const mode=$('burstMode').value,msg=$('burstMsg').value||'(no payload)';
+  clog(L,'⚡ BURST TX ['+mode+'] "'+msg+'" @ '+(+$('freq').value).toFixed(3)+' MHz');rec2('TX',(+$('freq').value).toFixed(3),mode,'burst: '+msg);}
+function burstRX(){const L=$('commLog');clog(L,'◉ BURST RX ['+$('burstMode').value+'] listening @ '+(+$('freq').value).toFixed(3)+' MHz — decoded packets log to Records.');}
+function clog(el,s){el.textContent+=new Date().toLocaleTimeString()+'  '+s+'\n';el.scrollTop=el.scrollHeight;}
+function rec2(type,freq,mode,note){const rec={t:Date.now(),type:type,freq:freq,mode:mode,note:note};
+  try{const a=JSON.parse(localStorage.getItem('krakenRecords')||'[]');a.push(rec);localStorage.setItem('krakenRecords',JSON.stringify(a));}catch(e){}
+  try{parent.postMessage({type:'rjxRecord',rec},'*');}catch(e){}}
+window.addEventListener('message',e=>{const d=e.data||{};const r=document.documentElement.style;
+  if(d.type==='rjxTheme'){r.setProperty('--accent',d.a);r.setProperty('--accent2',d.b);r.setProperty('--dim',d.c);}
+  if(d.type==='rjxOpt'&&d.wm!=null){r.setProperty('--wm',d.wm);}});
+bandChange();methChange();fillTones();renderCh();meshNote();refresh();
+</script>
+</body>
+</html>

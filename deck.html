@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Deck</title>
+<style>
+  :root{--accent:#ff1f3d;--dim:#b3001b;--accent2:#ff5c6c;--amber:#ffb648;--bg:#0a0a0d;--raised:#111116;--tile:#15151b;--hot:#2a0e14;--fg:#f5f5f7;--muted:#8a8a93;--mono:"DejaVu Sans Mono","Courier New",monospace;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:transparent;color:var(--fg);font-family:system-ui,sans-serif;display:flex;justify-content:center;padding:6px}
+  .device{position:relative;width:100%;max-width:920px;height:min(560px,calc(100dvh - 18px));background:var(--bg);border:2px solid var(--accent);border-radius:12px;overflow:hidden;box-shadow:0 0 40px rgba(255,31,61,.25);display:flex;flex-direction:column}
+  .status{height:40px;background:var(--raised);border-bottom:2px solid var(--accent);display:flex;align-items:center;gap:14px;padding:0 12px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .status b{color:var(--fg)}.quip{color:var(--accent2);font-style:italic;margin-left:auto}.clock{color:var(--fg);margin-left:12px}
+  .dbody{flex:1;display:flex;min-height:0}
+  .rail{width:104px;border-right:1px solid #1d1d25;overflow-y:auto;padding:8px 7px;display:flex;flex-direction:column;gap:6px}
+  .rail::-webkit-scrollbar{width:8px}.rail::-webkit-scrollbar-thumb{background:var(--dim);border-radius:4px}
+  .rb{flex:0 0 auto;height:48px;width:100%;border-radius:6px;background:var(--tile);border:1px solid #2a2a33;color:var(--fg);font-family:var(--mono);font-size:10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;overflow:hidden}
+  .rb .ic{font-size:14px}.rb:hover{background:var(--hot);border-color:var(--accent)}.rb.util .nm{color:var(--accent2)}.rb.active{background:var(--dim);border:1px solid var(--accent);color:#fff;font-weight:700}
+  .main{flex:1;display:flex;flex-direction:column;min-width:0;padding:10px;gap:9px}
+  .ttl{font-family:var(--mono);font-size:16px;font-weight:700;color:var(--accent)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;overflow-y:auto;flex:1 1 58%;min-height:0;padding-right:4px;align-content:start}
+  .grid::-webkit-scrollbar{width:8px}.grid::-webkit-scrollbar-thumb{background:var(--dim);border-radius:4px}
+  .tool{min-height:44px;background:var(--tile);border:1px solid #2a2a33;border-left:3px solid var(--dim);border-radius:6px;color:var(--fg);font-size:13px;display:flex;align-items:center;padding:0 10px;cursor:pointer}
+  .tool:hover{background:var(--hot);border-left-color:var(--accent)}.tool .w{color:var(--accent);margin-right:6px}
+  .console{flex:1 1 42%;min-height:70px;background:#050506;border:1px solid var(--dim);border-radius:6px;font-family:var(--mono);font-size:11.5px;color:#e6e6ea;padding:8px;overflow:auto;white-space:pre-wrap;line-height:1.4}
+  .console .p{color:var(--accent2)}.console .ok{color:#7CFC9B}.console .dim{color:var(--muted)}.console .red{color:var(--accent)}
+  .ctl{display:flex;gap:6px;align-items:center}.crumb{flex:1;color:var(--muted);font-family:var(--mono);font-size:11px}
+  .btn{min-height:34px;border-radius:6px;background:var(--tile);border:1px solid #2a2a33;color:var(--fg);font-size:12px;padding:0 12px;cursor:pointer}.btn.danger{border-color:var(--accent);color:var(--accent)}
+  .ov{position:absolute;inset:0;background:rgba(5,5,8,.93);display:none;flex-direction:column;padding:14px;z-index:9}.ov.show{display:flex}
+  .ov h2{font-family:var(--mono);color:var(--accent);font-size:15px;margin-bottom:8px;display:flex;justify-content:space-between}
+  .x{cursor:pointer;color:var(--muted);border:1px solid #333;border-radius:6px;padding:2px 10px}
+  .ovbody{flex:1;overflow:auto;display:flex;gap:10px;min-height:0}.col{overflow:auto}
+  .listbtn{display:block;width:100%;text-align:left;background:var(--tile);border:1px solid #2a2a33;border-radius:6px;color:var(--fg);padding:8px 10px;margin-bottom:6px;cursor:pointer;font-family:var(--mono);font-size:12px}.listbtn:hover{background:var(--hot);border-color:var(--accent)}
+  .vrow{display:flex;gap:8px;align-items:center;margin-bottom:6px}.vk{width:120px;color:var(--muted);font-family:var(--mono);font-size:12px}
+  .vv{flex:1;background:#050506;border:1px solid #2a2a33;border-radius:6px;color:var(--accent2);font-family:var(--mono);font-size:12px;padding:7px 10px}
+  .kbd{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;margin-top:8px}.kbd button{min-height:30px;background:var(--tile);border:1px solid #2a2a33;border-radius:5px;color:var(--fg);font-family:var(--mono);cursor:pointer}
+  .cmd{font-family:var(--mono);font-size:11.5px;color:var(--amber);word-break:break-all}.note{font-size:12px;color:var(--fg);margin:8px 0 2px}
+  .run{background:var(--dim);border:1px solid var(--accent);color:#fff;border-radius:5px;padding:3px 12px;font-size:11px;cursor:pointer;font-weight:700}
+  /* ===== backdrop: black + red, faint bomb watermark ===== */
+  :root{--wm:.06}
+  body{background:#0a0506}
+  body::before{content:"";position:fixed;inset:0;z-index:-2;
+    background:radial-gradient(62vmax 62vmax at 50% 42%,rgba(255,31,61,.12),transparent 62%),
+      radial-gradient(40vmax 40vmax at 50% 105%,rgba(179,0,27,.12),transparent 60%),#070405}
+  body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:var(--wm,.06);
+    background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20200%20200%27%3E%3Cg%20fill%3D%27none%27%20stroke%3D%27%23ff1f3d%27%20stroke-width%3D%275%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M100%2034%20C74%2034%2060%2060%2062%2086%20C63%20104%2078%20112%20100%20112%20C122%20112%20137%20104%20138%2086%20C140%2060%20126%2034%20100%2034%20Z%27%2F%3E%3Cpath%20d%3D%27M70%20100%20C52%20118%2046%20146%2034%20166%27%2F%3E%3Cpath%20d%3D%27M86%20110%20C78%20140%2074%20162%2070%20184%27%2F%3E%3Cpath%20d%3D%27M100%20114%20C100%20144%20100%20166%20100%20190%27%2F%3E%3Cpath%20d%3D%27M114%20110%20C122%20140%20126%20162%20130%20184%27%2F%3E%3Cpath%20d%3D%27M130%20100%20C148%20118%20154%20146%20166%20166%27%2F%3E%3C%2Fg%3E%3Ccircle%20cx%3D%2784%27%20cy%3D%2780%27%20r%3D%277%27%20fill%3D%27%23ff5c6c%27%2F%3E%3Ccircle%20cx%3D%27116%27%20cy%3D%2780%27%20r%3D%277%27%20fill%3D%27%23ff5c6c%27%2F%3E%3C%2Fsvg%3E");background-repeat:no-repeat;
+    background-position:center 46%;background-size:min(74vmin,760px)}
+</style></head>
+<body>
+  <div class="device">
+    <div class="status"><span>🖥 <b>kitsune</b></span><span>🌐 <b>eth0:10.50.0.14</b></span><span>⚡ <b>21%</b></span><span>🌡 <b>49°C</b></span><span>🔋 <b>87%</b></span><span class="quip">the fox sees every port.</span><span class="clock">23:30</span></div>
+    <div class="dbody">
+      <div class="rail" id="rail">
+        <button class="rb util" onclick="openOv('vars')"><span class="ic">✎</span><span class="nm">VARS</span></button>
+        <button class="rb util" onclick="openOv('learn')"><span class="ic">🎓</span><span class="nm">LEARN</span></button>
+        <button class="rb util" onclick="genReport()"><span class="ic">⎙</span><span class="nm">REPORT</span></button>
+        <button class="rb util" onclick="openOv('prof')"><span class="ic">⇅</span><span class="nm">PROFILE</span></button>
+        <div id="tabs"></div>
+      </div>
+      <div class="main">
+        <div class="ttl" id="ttl">✴  Scan</div>
+        <div class="grid" id="grid"></div>
+        <div class="console" id="console"></div>
+        <div class="ctl"><span class="crumb" id="crumb">idle</span><button class="btn danger">■ Stop</button><button class="btn" onclick="document.getElementById('console').innerHTML=''">Clear</button></div>
+      </div>
+    </div>
+    <div class="ov" id="ov-vars"><h2>✎ Variables <span class="x" onclick="closeOv()">close ✕</span></h2><div class="ovbody" style="flex-direction:column"><div id="varlist"></div><div class="kbd" id="kbd"></div></div></div>
+    <div class="ov" id="ov-learn"><h2>🎓 Academy <span class="x" onclick="closeOv()">close ✕</span></h2><div class="ovbody"><div class="col" style="width:150px" id="certlist"></div><div class="col" style="flex:1" id="certbody"></div></div></div>
+    <div class="ov" id="ov-prof"><h2>⇅ Switch profile <span class="x" onclick="closeOv()">close ✕</span></h2><div class="ovbody" style="flex-direction:column">
+      <button class="listbtn" onclick="setProfile('full')">● tools.yaml · 19 tabs · 155 tools</button>
+      <button class="listbtn" onclick="setProfile('wifi')">○ tools-wifi.yaml · wireless loadout</button>
+      <button class="listbtn" onclick="setProfile('recon')">○ tools-recon.yaml · recon loadout</button></div></div>
+  </div>
+<script>
+const TABS=[['ᚱ','Recon',['Live host sweep','ARP scan','WHOIS','DNS recon','theHarvester','Subfinder','amass','httpx']],
+['✴','Scan',['Fast top-ports','⚠Full TCP + scripts','⚠UDP top-50','⚠Vuln scripts','⚠masscan','naabu']],
+['⍟','Enum',['SMB enum','SMB shares','NFS exports','RPC info','⚠SNMP walk','NetBIOS','LDAP base']],
+['∞','Web',['whatweb','Headers+TLS','⚠nikto','⚠gobuster','⚠ffuf','⚠nuclei','⚠wpscan','⚠sqlmap','⚠dalfox','OWASP ZAP','⚠wfuzz','⚠commix']],
+['✶','Wireless',['Scan APs','⚠Monitor ON','Monitor OFF','⚠Survey','⚠Wardrive']],
+['ᚲ','WiFi-Atk',['⚠Handshake/PMKID','⚠Deauth','⚠WPS scan','⚠WPS attack','⚠wifite','→22000','⚠Crack WPA']],
+['⚑','Marauder',['AP + stations','⚠Probe sniff','Packet monitor','SSID list','BLE/AirTag detect','BT classic scan','⚠Wardrive']],
+['ᛒ','Bluetooth',['Scan BLE','Classic inquiry','⚠BLE recon','⚠l2ping','Seen devices']],
+['⊕','NFC/RFID',['List tag','⚠Read MIFARE','⚠PM3 HF','⚠PM3 LF','⚠PM3 14a']],
+['✜','Network',['⚠Capture pcap','Top talkers','DNS live','Interfaces','Connections']],
+['⇌','MITM',['⚠Responder','⚠bettercap','⚠ARP spoof','⚠mitm6','⚠ettercap']],
+['☥','Passwords',['⚠Hydra SSH','⚠Hydra FTP','⚠hashcat','⚠john','john show','hashid','cewl']],
+['ᚨ','AD',['⚠netexec','⚠spray','⚠kerbrute','⚠AS-REP','⚠secretsdump','⚠BloodHound']],
+['✕','Exploit',['searchsploit','⚠Metasploit','Update db']],
+['ᛉ','SDR/RF',['Detect SDR','HackRF info','rtl_power','⚠HackRF 1M-6G','gqrx','URH','ADS-B','AIS','rtl_433','ACARS','VDL2','APRS','ppm/TCXO','WSJT-X']],
+['✸','Cloud',['⚠ScoutSuite','⚠Prowler','trivy image','trivy fs','⚠kube-hunter']],
+['ᛗ','Mobile',['ADB devices','Packages','⚠Pull APK','aapt','⚠apktool','⚠jadx','Frida ps','⚠Objection','Logcat','MobSF']],
+['✠','Loot',['List loot','Disk size','Tail session','Grep IPs','Zip','⚠Cloud sync','Report']],
+['ᛟ','System',['Temps','USB','Services','⚠Update DBs','⚠Shutdown','⚠Reboot']]];
+const CERTS=[['OSCP','Pen Testing',[['Full scan','nmap -p- --min-rate 2000 10.50.0.14'],['Linux privesc','sudo -l ; find / -perm -4000 2>/dev/null']]],
+['OSWP','Wireless',[['PMKID','hcxdumptool -i wlan1 -w pmkid.pcapng'],['Crack','hashcat -m 22000 wifi.22000 rockyou.txt']]],
+['OSEP','AD & Evasion',[['Roast','impacket-GetNPUsers acme/ -usersfile users.txt -no-pass'],['Dump','impacket-secretsdump acme/u@10.50.0.14']]],
+['OSWA','Web',[['SQLi','sqlmap -u "http://t/?id=1" --batch --dbs'],['XSS','dalfox url http://t']]],
+['OSAI','AI Red Team',[['Scan LLM','garak --probes promptinject']]]];
+const VARS={target:'10.50.0.14',bssid:'AA:BB:CC:DD:EE:FF',domain:'acme.local',url:'http://10.50.0.14',wlan:'wlan1',sync_dest:'ops@vault:/srv/loot/'};
+const PROF={full:[...Array(19).keys()],wifi:[4,5,6,7],recon:[0,1,3,17]};
+let shown=PROF.full,active=1;const $=id=>document.getElementById(id);
+function log(h){const c=$('console');c.innerHTML+=h+"\n";c.scrollTop=c.scrollHeight}
+function banner(){$('console').innerHTML='<span class="red">Kraken · engagement: acme-internal-nov</span>\n<span class="dim">Scope guard : 10.0.0.0/8, 192.168.0.0/16 · Loot: ~/loot/acme-internal-nov</span>\nTap a tool to run it. Output streams here.\n--------------------------------------------'}
+function tabs(){const tb=$('tabs');tb.innerHTML='';shown.forEach(i=>{const t=TABS[i];const b=document.createElement('button');b.className='rb'+(i===active?' active':'');b.innerHTML='<span class="ic">'+t[0]+'</span><span>'+t[1]+'</span>';b.onclick=()=>{active=i;tabs();grid()};tb.appendChild(b)})}
+function grid(){const t=TABS[active];$('ttl').textContent=t[0]+'  '+t[1];const g=$('grid');g.innerHTML='';t[2].forEach(n=>{const w=n.startsWith('⚠');const l=w?n.slice(1):n;const d=document.createElement('div');d.className='tool';d.innerHTML=(w?'<span class="w">⚠</span>':'')+l;d.onclick=()=>run(t[1],l);g.appendChild(d)})}
+function run(tab,l){$('console').innerHTML='';log('<span class="p">$ '+cmd(l)+'</span>');log('Starting '+l+' …');$('crumb').textContent='running…';setTimeout(()=>{log('<span class="ok">[=] Exited with code 0. · logged</span>');$('crumb').textContent='done (0) · logged'},350)}
+function cmd(l){const m={'Fast top-ports':'nmap -T4 -F 10.50.0.14','Full TCP + scripts':'nmap -p- -sV -sC 10.50.0.14','Handshake/PMKID':'sudo hcxdumptool -i wlan1 -w capture.pcapng','ADS-B':'dump1090 --interactive','secretsdump':'impacket-secretsdump acme/svc@10.50.0.14','ADB devices':'adb devices -l','AP + stations':'sudo airodump-ng wlan1','Probe sniff':'sudo tcpdump -i wlan1 -e type mgt subtype probe-req'};return m[l]||(l.toLowerCase().replace(/[^a-z0-9]+/g,'-')+' 10.50.0.14')}
+function openOv(k){closeOv();$('ov-'+k).classList.add('show');if(k==='vars')rv();if(k==='learn')rl()}
+function closeOv(){document.querySelectorAll('.ov').forEach(o=>o.classList.remove('show'))}
+function rv(){const v=$('varlist');v.innerHTML='';Object.entries(VARS).forEach(([k,val])=>{const r=document.createElement('div');r.className='vrow';r.innerHTML='<div class="vk">'+k+'</div><div class="vv">'+val+'</div>';v.appendChild(r)});const kb=$('kbd');kb.innerHTML='';'1234567890qwertyuiopasdfghjkl:zxcvbnm.-/'.split('').forEach(c=>{const b=document.createElement('button');b.textContent=c;kb.appendChild(b)})}
+function rl(){const cl=$('certlist');cl.innerHTML='';CERTS.forEach((ct,i)=>{const b=document.createElement('button');b.className='listbtn';b.innerHTML='<b style="color:#ff5c6c">'+ct[0]+'</b><br><span style="color:#8a8a93;font-size:10px">'+ct[1]+'</span>';b.onclick=()=>sc(i);cl.appendChild(b)});sc(0)}
+function sc(i){const ct=CERTS[i];const b=$('certbody');b.innerHTML='<div class="ttl" style="font-size:14px">'+ct[0]+' · '+ct[1]+'</div>';ct[2].forEach(([note,c])=>{const d=document.createElement('div');d.innerHTML='<div class="note">'+note+'</div><div style="display:flex;gap:8px;align-items:center"><div class="cmd" style="flex:1">'+c.replace(/</g,'&lt;')+'</div><button class="run" onclick="lr(\''+note+'\')">Run</button></div>';b.appendChild(d)})}
+function lr(note){closeOv();$('console').innerHTML='';log('<span class="p">$ '+note+' (Academy · VARS-filled · scope-checked)</span>');setTimeout(()=>log('<span class="ok">[=] Exited 0 · logged</span>'),300)}
+function genReport(){$('console').innerHTML='';log('<span class="red">⎙ Generating report…</span>');setTimeout(()=>{log('[=] Report (6 findings auto-classified):');log('  <span class="red">CRITICAL</span> SMB MS17-010 indicated');log('  HIGH SQL injection (sqlmap)');log('  report-20261108.md / .html / .pdf')},400)}
+function setProfile(p){shown=PROF[p];active=shown[0];closeOv();tabs();grid();log('<span class="dim">[=] Profile loaded: tools-'+p+'.yaml</span>')}
+tabs();grid();banner();
+</script>
+</body></html>

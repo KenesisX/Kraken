@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Strikeback X · Strikeback Tech</title>
+<style>
+  :root{--accent:#ff1f3d;--dim:#b3001b;--accent2:#ff5c6c;--amber:#ffb648;
+    --bg:#0a0a0d;--raised:#111116;--tile:#15151b;--hot:#2a0e14;--fg:#f5f5f7;--muted:#8a8a93;
+    --mono:"DejaVu Sans Mono","Courier New",monospace;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:radial-gradient(1200px 600px at 50% -5%,#1a0409,#000 60%);color:var(--fg);
+       font-family:system-ui,sans-serif;min-height:100vh}
+  .page{position:relative;min-height:100vh;display:none;flex-direction:column;align-items:center;padding:30px 16px 70px}
+  .page.show{display:flex}
+  .pgnum{position:fixed;top:16px;right:22px;font-family:var(--mono);font-size:22px;font-weight:800;
+         color:var(--accent);border:2px solid var(--accent);border-radius:8px;padding:2px 12px;z-index:50;
+         box-shadow:0 0 18px rgba(255,31,61,.4)}
+  .nav{display:flex;gap:12px;margin-top:30px}
+  .nav button{font-family:var(--mono);font-size:14px;padding:11px 22px;border-radius:8px;cursor:pointer;
+       background:var(--dim);border:1px solid var(--accent);color:#fff;font-weight:700}
+  .nav button.ghost{background:transparent;color:var(--fg);border-color:#333;font-weight:400}
+  /* hero */
+  .hero{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+  .brand{font-family:var(--mono);color:var(--muted);letter-spacing:8px;font-size:14px}
+  .title{font-family:var(--mono);color:var(--accent);font-size:46px;font-weight:800;letter-spacing:3px;
+         text-shadow:0 0 24px rgba(255,31,61,.5)}
+  .tag{color:var(--fg);font-size:17px;max-width:640px}.sub{color:var(--muted);font-size:13px;max-width:620px}
+  .section-h{font-family:var(--mono);color:var(--accent);font-size:13px;letter-spacing:2px;margin:30px 0 14px}
+  .features{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;max-width:900px}
+  .card{background:var(--raised);border:1px solid #1d1d25;border-left:3px solid var(--accent);border-radius:10px;padding:16px}
+  .card h3{font-family:var(--mono);color:var(--accent2);font-size:15px;margin-bottom:6px}
+  .card p{color:var(--muted);font-size:13px;line-height:1.5}
+  /* device */
+  .device{position:relative;width:860px;max-width:96vw;height:512px;background:var(--bg);border:2px solid var(--accent);
+          border-radius:12px;overflow:hidden;box-shadow:0 0 50px rgba(255,31,61,.3);display:flex;flex-direction:column}
+  .status{height:42px;background:var(--raised);border-bottom:2px solid var(--accent);display:flex;align-items:center;
+          gap:14px;padding:0 12px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .status b{color:var(--fg)}.quip{color:var(--accent2);font-style:italic;margin-left:auto}.clock{color:var(--fg);margin-left:12px}
+  .dbody{flex:1;display:flex;min-height:0}
+  .rail{width:104px;border-right:1px solid #1d1d25;overflow-y:auto;padding:8px 7px;display:flex;flex-direction:column;gap:6px}
+  .rail::-webkit-scrollbar{width:8px}.rail::-webkit-scrollbar-thumb{background:var(--dim);border-radius:4px}
+  .logo{display:flex;justify-content:center;height:60px;align-items:center;flex:0 0 auto}
+  /* UNIFORM rail buttons — every tab the same size */
+  .rb{flex:0 0 auto;height:50px;width:100%;border-radius:6px;background:var(--tile);border:1px solid #2a2a33;
+      color:var(--fg);font-family:var(--mono);font-size:11px;cursor:pointer;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;gap:1px;overflow:hidden;white-space:nowrap;padding:0}
+  .rb .ic{font-size:15px;line-height:1}.rb .nm{font-size:10px;line-height:1}
+  .rb:hover{background:var(--hot);border-color:var(--accent)}.rb.util .nm{color:var(--accent2)}
+  .rb.active{background:var(--dim);border:1px solid var(--accent);color:#fff;font-weight:700}
+  .main{flex:1;display:flex;flex-direction:column;min-width:0;padding:10px;gap:9px}
+  .ttl{font-family:var(--mono);font-size:16px;font-weight:700;color:var(--accent)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;overflow-y:auto;max-height:172px;padding-right:4px;align-content:start}
+  .grid::-webkit-scrollbar{width:8px}.grid::-webkit-scrollbar-thumb{background:var(--dim);border-radius:4px}
+  .tool{min-height:44px;background:var(--tile);border:1px solid #2a2a33;border-left:3px solid var(--dim);border-radius:6px;
+        color:var(--fg);font-size:13px;display:flex;align-items:center;padding:0 10px;cursor:pointer}
+  .tool:hover{background:var(--hot);border-left-color:var(--accent)}.tool .w{color:var(--accent);margin-right:6px}
+  .console{flex:1;background:#050506;border:1px solid var(--dim);border-radius:6px;font-family:var(--mono);font-size:11.5px;
+           color:#e6e6ea;padding:8px;overflow:auto;white-space:pre-wrap;line-height:1.4}
+  .console .p{color:var(--accent2)}.console .ok{color:#7CFC9B}.console .dim{color:var(--muted)}.console .red{color:var(--accent)}
+  .ctl{display:flex;gap:6px;align-items:center}.crumb{flex:1;color:var(--muted);font-family:var(--mono);font-size:11px}
+  .btn{min-height:34px;border-radius:6px;background:var(--tile);border:1px solid #2a2a33;color:var(--fg);font-size:12px;padding:0 12px;cursor:pointer}
+  .btn.danger{border-color:var(--accent);color:var(--accent)}
+  .ov{position:absolute;inset:0;background:rgba(5,5,8,.92);display:none;flex-direction:column;padding:14px;z-index:9}
+  .ov.show{display:flex}.ov h2{font-family:var(--mono);color:var(--accent);font-size:15px;margin-bottom:8px;display:flex;justify-content:space-between}
+  .x{cursor:pointer;color:var(--muted);border:1px solid #333;border-radius:6px;padding:2px 10px}
+  .ovbody{flex:1;overflow:auto;display:flex;gap:10px;min-height:0}.col{overflow:auto}
+  .listbtn{display:block;width:100%;text-align:left;background:var(--tile);border:1px solid #2a2a33;border-radius:6px;color:var(--fg);
+           padding:8px 10px;margin-bottom:6px;cursor:pointer;font-family:var(--mono);font-size:12px}
+  .listbtn:hover{background:var(--hot);border-color:var(--accent)}
+  .vrow{display:flex;gap:8px;align-items:center;margin-bottom:6px}.vk{width:120px;color:var(--muted);font-family:var(--mono);font-size:12px}
+  .vv{flex:1;background:#050506;border:1px solid #2a2a33;border-radius:6px;color:var(--accent2);font-family:var(--mono);font-size:12px;padding:7px 10px;cursor:pointer}
+  .kbd{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;margin-top:8px}
+  .kbd button{min-height:30px;background:var(--tile);border:1px solid #2a2a33;border-radius:5px;color:var(--fg);font-family:var(--mono);cursor:pointer}
+  .cmd{font-family:var(--mono);font-size:11.5px;color:var(--amber);word-break:break-all}.note{font-size:12px;color:var(--fg);margin:8px 0 2px}
+  .run{background:var(--dim);border:1px solid var(--accent);color:#fff;border-radius:5px;padding:3px 12px;font-size:11px;cursor:pointer;font-weight:700}
+  footer{margin-top:40px;color:var(--muted);font-size:12px;text-align:center;max-width:720px;line-height:1.6}
+  @media(max-width:760px){.features{grid-template-columns:1fr}.title{font-size:34px}}
+</style>
+</head>
+<body>
+
+  <!-- ===================== PAGE 1 — OVERVIEW ===================== -->
+  <div class="page show" id="page1">
+    <div class="pgnum">1</div>
+    <div class="hero">
+      <svg width="130" height="130" viewBox="0 0 200 200"><use href="#foxmark"/></svg>
+      <div class="brand">S T R I K E B A C K   T E C H</div>
+      <div class="title">STRIKEBACK X</div>
+      <div class="tag">A touch-first red-team command deck for the Raspberry Pi 5 — 145 tools across 18 tabs, a scope guard, engagement logging, a cert academy, and a Galaxy-Watch companion, in one black-and-red interface.</div>
+      <div class="sub">Open-source · runs at the Pi's limits but stays smooth · authorized testing only.</div>
+    </div>
+    <div class="section-h">// WHAT'S INSIDE</div>
+    <div class="features">
+      <div class="card"><h3>145 tools · 18 tabs</h3><p>Recon, scanning, web, wireless + Wi-Fi attacks, Bluetooth, NFC/RFID, network, MITM, passwords, Active Directory, exploitation, SDR/RF, cloud, Android — every button runs the real tool, live.</p></div>
+      <div class="card"><h3>Scope guard + logging</h3><p>Every command is checked against the engagement's authorized CIDRs and logged. Out-of-scope targets are blocked; the log becomes your deliverable.</p></div>
+      <div class="card"><h3>🎓 Academy</h3><p>A command reference mapped to the OffSec paths — OSCP, OSEP, OSWA, OSWE, OSED, OSDA, OSIR, OSWP, OSAI — with runnable, VARS-filled examples.</p></div>
+      <div class="card"><h3>Auto reports</h3><p>One tap turns a session into a styled Markdown/HTML/PDF findings draft, with a heuristic severity classifier over the tool output.</p></div>
+      <div class="card"><h3>Galaxy Watch companion</h3><p>Push alerts to your wrist — scan done, host found, out-of-scope blocked, low battery — each with a Stop button, plus a round-screen control page.</p></div>
+      <div class="card"><h3>Built to stay smooth</h3><p>Pre-built stacked pages, momentum scrolling, lazy data, and heavy GUIs in separate processes — it runs hard on the Pi 5 without hitching.</p></div>
+    </div>
+    <div class="nav"><button onclick="go(2)">Live demo →</button></div>
+    <footer>Strikeback Tech LLC · physical penetration testing &amp; red team, Northern Colorado ·
+      authorized testing only. No IMSI catchers, no jam/spoof/spam RF, no phishing tooling.</footer>
+  </div>
+
+  <!-- ===================== PAGE 2 — LIVE DEMO ===================== -->
+  <div class="page" id="page2">
+    <div class="pgnum">2</div>
+    <div class="section-h">// STRIKEBACK X — LIVE DEMO · CLICK ANYTHING</div>
+    <div class="device">
+      <div class="status"><span>🖥 <b>kitsune</b></span><span>🌐 <b>eth0:10.50.0.14</b></span><span>⚡ <b>21%</b></span><span>🌡 <b>49°C</b></span><span>🔋 <b>87%</b></span><span class="quip">the fox sees every port.</span><span class="clock">23:02</span></div>
+      <div class="dbody">
+        <div class="rail" id="rail">
+          <div class="logo"><svg width="56" height="56" viewBox="0 0 200 200"><use href="#foxmark"/></svg></div>
+          <button class="rb util" onclick="openOv('vars')"><span class="ic">✎</span><span class="nm">VARS</span></button>
+          <button class="rb util" onclick="openOv('learn')"><span class="ic">🎓</span><span class="nm">LEARN</span></button>
+          <button class="rb util" onclick="genReport()"><span class="ic">⎙</span><span class="nm">REPORT</span></button>
+          <button class="rb util" onclick="openOv('prof')"><span class="ic">⇅</span><span class="nm">PROFILE</span></button>
+          <div id="tabs"></div>
+        </div>
+        <div class="main">
+          <div class="ttl" id="ttl">✴  Scan</div>
+          <div class="grid" id="grid"></div>
+          <div class="console" id="console"></div>
+          <div class="ctl"><span class="crumb" id="crumb">idle</span><button class="btn danger">■ Stop</button><button class="btn" onclick="document.getElementById('console').innerHTML=''">Clear</button></div>
+        </div>
+      </div>
+      <div class="ov" id="ov-vars"><h2>✎ Variables <span class="x" onclick="closeOv()">close ✕</span></h2><div class="ovbody" style="flex-direction:column"><div id="varlist"></div><div class="kbd" id="kbd"></div></div></div>
+      <div class="ov" id="ov-learn"><h2>🎓 Academy <span class="x" onclick="closeOv()">close ✕</span></h2><div class="ovbody"><div class="col" style="width:150px" id="certlist"></div><div class="col" style="flex:1" id="certbody"></div></div></div>
+      <div class="ov" id="ov-prof"><h2>⇅ Switch profile <span class="x" onclick="closeOv()">close ✕</span></h2><div class="ovbody" style="flex-direction:column">
+        <button class="listbtn" onclick="setProfile('full')">● tools.yaml · 18 tabs · 145 tools</button>
+        <button class="listbtn" onclick="setProfile('wifi')">○ tools-wifi.yaml · wireless loadout</button>
+        <button class="listbtn" onclick="setProfile('recon')">○ tools-recon.yaml · recon loadout</button></div></div>
+    </div>
+    <div class="nav"><button class="ghost" onclick="go(1)">← Overview</button></div>
+  </div>
+
+  <svg width="0" height="0" style="position:absolute"><symbol id="foxmark" viewBox="0 0 200 200">
+    <defs>
+      <radialGradient id="h" cx="48%" cy="58%" r="55%"><stop offset="0" stop-color="#ff1f3d" stop-opacity=".4"/><stop offset="1" stop-color="#b3001b" stop-opacity="0"/></radialGradient>
+      <radialGradient id="s" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#ffe9a6"/><stop offset=".5" stop-color="#ff6a1f" stop-opacity=".6"/><stop offset="1" stop-color="#ff1f3d" stop-opacity="0"/></radialGradient>
+    </defs>
+    <circle cx="96" cy="118" r="98" fill="url(#h)"/>
+    <circle cx="94" cy="132" r="52" fill="none" stroke="#ff1f3d" stroke-width="13" opacity=".3"/>
+    <circle cx="94" cy="132" r="52" fill="#140406"/><circle cx="94" cy="132" r="52" fill="none" stroke="#ff3b52" stroke-width="4.5"/>
+    <g stroke-linecap="round"><line x1="63" y1="101" x2="125" y2="163" stroke="#ff3b52" stroke-width="5.5"/><line x1="125" y1="101" x2="63" y2="163" stroke="#ff3b52" stroke-width="5.5"/></g>
+    <path d="M78 86 L110 86 L104 62 L84 62 Z" fill="#140406" stroke="#ff3b52" stroke-width="3.5"/>
+    <ellipse cx="94" cy="62" rx="10" ry="3.2" fill="#140406" stroke="#ff3b52" stroke-width="2.5"/>
+    <path d="M94 60 C 102 40 120 50 138 26" fill="none" stroke="#ff6a1f" stroke-width="3.5" stroke-linecap="round"/>
+    <circle cx="140" cy="22" r="20" fill="url(#s)"/><path d="M140 4 L146 18 L160 22 L146 26 L140 40 L134 26 L120 22 L134 18 Z" fill="#ffb648"/><circle cx="140" cy="22" r="3.2" fill="#fff6e6"/></symbol></svg>
+
+<script>
+function go(n){document.querySelectorAll('.page').forEach(p=>p.classList.remove('show'));
+  document.getElementById('page'+n).classList.add('show');window.scrollTo(0,0);}
+const TABS=[['ᚱ','Recon',['Live host sweep','ARP scan','WHOIS','DNS recon','theHarvester','Subfinder','amass','httpx']],
+['✴','Scan',['Fast top-ports','⚠Full TCP + scripts','⚠UDP top-50','⚠Vuln scripts','⚠masscan','naabu']],
+['⍟','Enum',['SMB enum','SMB shares','NFS exports','RPC info','⚠SNMP walk','NetBIOS','LDAP base']],
+['∞','Web',['whatweb','Headers+TLS','⚠nikto','⚠gobuster','⚠ffuf','⚠nuclei','⚠wpscan','⚠sqlmap','⚠dalfox','OWASP ZAP','⚠wfuzz','⚠commix']],
+['✶','Wireless',['Scan APs','⚠Monitor ON','Monitor OFF','⚠Survey','⚠Wardrive']],
+['ᚲ','WiFi-Atk',['⚠Handshake/PMKID','⚠Deauth','⚠WPS scan','⚠WPS attack','⚠wifite','→22000','⚠Crack WPA']],
+['ᛒ','Bluetooth',['Scan BLE','Classic inquiry','⚠BLE recon','⚠l2ping','Seen devices']],
+['⊕','NFC/RFID',['List tag','⚠Read MIFARE','⚠PM3 HF','⚠PM3 LF','⚠PM3 14a']],
+['✜','Network',['⚠Capture pcap','Top talkers','DNS live','Interfaces','Connections']],
+['⇌','MITM',['⚠Responder','⚠bettercap','⚠ARP spoof','⚠mitm6','⚠ettercap']],
+['☥','Passwords',['⚠Hydra SSH','⚠Hydra FTP','⚠hashcat','⚠john','john show','hashid','cewl']],
+['ᚨ','AD',['⚠netexec','⚠spray','⚠kerbrute','⚠AS-REP','⚠secretsdump','⚠BloodHound']],
+['✕','Exploit',['searchsploit','⚠Metasploit','Update db']],
+['ᛉ','SDR/RF',['Detect SDR','HackRF info','rtl_power','⚠HackRF 1M-6G','gqrx','URH','ADS-B','AIS','rtl_433','ACARS','VDL2','APRS','ppm/TCXO','WSJT-X']],
+['✸','Cloud',['⚠ScoutSuite','⚠Prowler','trivy image','trivy fs','⚠kube-hunter']],
+['ᛗ','Mobile',['ADB devices','Packages','⚠Pull APK','aapt','⚠apktool','⚠jadx','Frida ps','⚠Objection','Logcat','MobSF']],
+['✠','Loot',['List loot','Disk size','Tail session','Grep IPs','Zip','⚠Cloud sync','Report']],
+['ᛟ','System',['Temps','USB','Services','⚠Update DBs','⚠Shutdown','⚠Reboot']]];
+const CERTS=[['OSCP','Pen Testing',[['Full scan','nmap -p- --min-rate 2000 10.50.0.14'],['Linux privesc','sudo -l ; find / -perm -4000 2>/dev/null']]],
+['OSWP','Wireless',[['PMKID','hcxdumptool -i wlan1 -w pmkid.pcapng'],['Crack','hashcat -m 22000 wifi.22000 rockyou.txt']]],
+['OSEP','AD & Evasion',[['Roast','impacket-GetNPUsers acme/ -usersfile users.txt -no-pass'],['Dump','impacket-secretsdump acme/u@10.50.0.14']]],
+['OSWA','Web',[['SQLi','sqlmap -u "http://t/?id=1" --batch --dbs'],['XSS','dalfox url http://t']]],
+['OSDA','Blue',[['Logons','Get-WinEvent -FilterHashtable @{Id=4625}']]],
+['OSAI','AI Red Team',[['Scan LLM','garak --probes promptinject']]]];
+const VARS={target:'10.50.0.14',bssid:'AA:BB:CC:DD:EE:FF',domain:'acme.local',url:'http://10.50.0.14',wlan:'wlan1',sync_dest:'ops@vault:/srv/loot/'};
+const PROF={full:[...Array(18).keys()],wifi:[4,5,6,16],recon:[0,1,3,16]};
+let shown=PROF.full,active=1;const $=id=>document.getElementById(id);
+function log(h){const c=$('console');c.innerHTML+=h+"\n";c.scrollTop=c.scrollHeight}
+function banner(){$('console').innerHTML='<span class="red">Strikeback X · engagement: acme-internal-nov</span>\n<span class="dim">Scope guard : 10.0.0.0/8, 192.168.0.0/16  ·  Loot: ~/loot/acme-internal-nov</span>\nTap a tool to run it. Output streams here.\n--------------------------------------------'}
+function tabs(){const tb=$('tabs');tb.innerHTML='';shown.forEach(i=>{const t=TABS[i];const b=document.createElement('button');b.className='rb'+(i===active?' active':'');b.innerHTML='<span class="ic">'+t[0]+'</span><span class="nm">'+t[1]+'</span>';b.onclick=()=>{active=i;tabs();grid()};tb.appendChild(b)})}
+function grid(){const t=TABS[active];$('ttl').textContent=t[0]+'  '+t[1];const g=$('grid');g.innerHTML='';t[2].forEach(n=>{const w=n.startsWith('⚠');const l=w?n.slice(1):n;const d=document.createElement('div');d.className='tool';d.innerHTML=(w?'<span class="w">⚠</span>':'')+l;d.onclick=()=>run(t[1],l);g.appendChild(d)})}
+function run(tab,l){$('console').innerHTML='';log('<span class="p">$ '+cmd(l)+'</span>');log('Starting '+l+' …');$('crumb').textContent='running…';setTimeout(()=>{log('<span class="ok">[=] Exited with code 0.  · logged</span>');$('crumb').textContent='done (0) · logged'},350)}
+function cmd(l){const m={'Fast top-ports':'nmap -T4 -F 10.50.0.14','Full TCP + scripts':'nmap -p- -sV -sC 10.50.0.14','Handshake/PMKID':'sudo hcxdumptool -i wlan1 -w capture.pcapng','ADS-B':'dump1090 --interactive','secretsdump':'impacket-secretsdump acme/svc@10.50.0.14','ADB devices':'adb devices -l'};return m[l]||(l.toLowerCase().replace(/[^a-z0-9]+/g,'-')+' 10.50.0.14')}
+function openOv(k){closeOv();$('ov-'+k).classList.add('show');if(k==='vars')rv();if(k==='learn')rl()}
+function closeOv(){document.querySelectorAll('.ov').forEach(o=>o.classList.remove('show'))}
+function rv(){const v=$('varlist');v.innerHTML='';Object.entries(VARS).forEach(([k,val])=>{const r=document.createElement('div');r.className='vrow';r.innerHTML='<div class="vk">'+k+'</div><div class="vv">'+val+'</div>';v.appendChild(r)});const kb=$('kbd');kb.innerHTML='';'1234567890qwertyuiopasdfghjkl:zxcvbnm.-/'.split('').forEach(c=>{const b=document.createElement('button');b.textContent=c;kb.appendChild(b)})}
+function rl(){const cl=$('certlist');cl.innerHTML='';CERTS.forEach((ct,i)=>{const b=document.createElement('button');b.className='listbtn';b.innerHTML='<b style="color:#ff5c6c">'+ct[0]+'</b><br><span style="color:#8a8a93;font-size:10px">'+ct[1]+'</span>';b.onclick=()=>sc(i);cl.appendChild(b)});sc(0)}
+function sc(i){const ct=CERTS[i];const b=$('certbody');b.innerHTML='<div class="ttl" style="font-size:14px">'+ct[0]+' · '+ct[1]+'</div>';ct[2].forEach(([note,c])=>{const d=document.createElement('div');d.innerHTML='<div class="note">'+note+'</div><div style="display:flex;gap:8px;align-items:center"><div class="cmd" style="flex:1">'+c.replace(/</g,'&lt;')+'</div><button class="run" onclick="lr(\''+note+'\')">Run</button></div>';b.appendChild(d)})}
+function lr(note){closeOv();$('console').innerHTML='';log('<span class="p">$ '+note+' (Academy · VARS-filled · scope-checked)</span>');setTimeout(()=>log('<span class="ok">[=] Exited 0 · logged</span>'),300)}
+function genReport(){$('console').innerHTML='';log('<span class="red">⎙ Generating report…</span>');setTimeout(()=>{log('[=] Report (6 findings auto-classified):');log('  <span class="red">CRITICAL</span> SMB MS17-010 indicated');log('  HIGH SQL injection (sqlmap)');log('  report-20261108.md / .html / .pdf')},400)}
+function setProfile(p){shown=PROF[p];active=shown[0];closeOv();tabs();grid();log('<span class="dim">[=] Profile loaded: tools-'+p+'.yaml</span>')}
+tabs();grid();banner();
+</script>
+</body>
+</html>

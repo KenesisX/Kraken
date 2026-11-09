@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kraken · About</title>
+<style>
+  :root{--accent:#ff1f3d;--dim:#b3001b;--accent2:#ff5c6c;--amber:#ffb648;--bg:#0a0a0d;--raised:#111116;--tile:#15151b;--hot:#2a0e14;--fg:#f5f5f7;--muted:#8a8a93;--mono:"DejaVu Sans Mono","Courier New",monospace;--wm:.06}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{color:var(--fg);font-family:system-ui,sans-serif;display:flex;justify-content:center;padding:6px}
+  .device{position:relative;width:100%;max-width:980px;height:min(600px,calc(100dvh - 18px));background:rgba(10,10,13,.92);border:2px solid var(--accent);border-radius:12px;overflow:hidden;box-shadow:0 0 40px rgba(255,31,61,.25);display:flex;flex-direction:column}
+  .status{height:38px;background:var(--raised);border-bottom:2px solid var(--accent);display:flex;align-items:center;gap:12px;padding:0 12px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .status b{color:var(--fg)}.pg{margin-left:auto;color:var(--accent);font-weight:800;border:2px solid var(--accent);border-radius:6px;padding:1px 9px}
+  .body{flex:1;overflow:auto;padding:20px}
+  .brand{font-family:var(--mono);letter-spacing:5px;color:var(--accent2);font-size:12px}
+  .title{font-size:42px;font-weight:900;letter-spacing:3px;background:linear-gradient(180deg,#fff,var(--accent));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin:4px 0 8px}
+  .tag{color:var(--fg);font-size:15px;max-width:720px;line-height:1.5}
+  .sub{color:var(--muted);font-size:12px;margin-top:8px;max-width:720px;line-height:1.5}
+  .section-h{font-family:var(--mono);color:var(--accent);font-size:12px;margin:22px 0 12px;border-bottom:1px solid var(--dim);padding-bottom:5px}
+  .features{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+  @media(max-width:760px){.features{grid-template-columns:1fr}}
+  .card{background:var(--raised);border:1px solid #23232c;border-radius:10px;padding:12px}
+  .card h3{font-family:var(--mono);color:var(--accent2);font-size:14px;margin-bottom:6px}
+  .card p{color:var(--muted);font-size:12.5px;line-height:1.5}
+  footer{margin-top:22px;color:var(--muted);font-size:12px;line-height:1.6;border-top:1px solid #23232c;padding-top:12px}
+</style>
+</head>
+<body>
+<div class="device">
+  <div class="status">🐙 <b>ABOUT</b> · Kraken platform <span class="pg">10 / ABOUT</span></div>
+  <div class="body">
+    <div class="brand">S T R I K E B A C K &nbsp; T E C H</div>
+    <div class="title">KRAKEN</div>
+    <div class="tag">One deck: every networking &amp; RF tool a Raspberry Pi can run, a cert academy, a Galaxy-Watch companion,
+      and a gqrx-class signal analyzer — black &amp; red, built to run hard but stay smooth.</div>
+    <div class="sub">Pages: 1 Home · 2 Deck · 3 Signal · 4 Track · 5 Map · 6 TX (licensed HAM) · 7 Records · 8 Stats ·
+      9 Devices · 10 About · 11 Settings. Navigate top-right, or press 1–9 / 0 for 10.</div>
+
+    <div class="section-h">// WHAT'S INSIDE</div>
+    <div class="features">
+      <div class="card"><h3>Networking &amp; pentest</h3><p>155 tools across 19 tabs — recon, scan, web, wireless + Wi-Fi attacks, Marauder recon, Bluetooth, NFC, MITM, passwords, AD, exploitation, cloud, Android. Every button runs the real tool, scope-checked and logged.</p></div>
+      <div class="card"><h3>RF &amp; SDR</h3><p>RTL-SDR V4 / HackRF One: wideband survey 1 MHz–6 GHz, 16 live displays, point-click forensics with A→B delta, RSSI/SNR/variance, RF-physics link budget, full band plan (cellular/GNSS/ISM/Zigbee/802.11/satphone) and real-time monitoring.</p></div>
+      <div class="card"><h3>TX &amp; devices</h3><p>Licensed-HAM transmit behind a gold safety interlock (CW/tone/SSTV/AFSK), HackRF sync, and a device page to flash &amp; manage your own ESP32/Pico/Pi/CC1101 boards over USB/SSH/SFTP.</p></div>
+      <div class="card"><h3>Academy</h3><p>Runnable command reference mapped to the OffSec paths — OSCP, OSEP, OSWA, OSED, OSDA, OSWP, OSAI.</p></div>
+      <div class="card"><h3>Records &amp; Stats</h3><p>A field notebook that exports everything — text, images, graph snapshots — to one file, plus a Pwnagotchi-style stats page with import/export.</p></div>
+      <div class="card"><h3>Built to stay smooth</h3><p>Pre-built stacked pages, momentum scrolling, lazy data, heavy GUIs in their own processes. Runs as Android (.aab), desktop (.exe), web, and a flashable Pi 5 image.</p></div>
+    </div>
+    <footer>Strikeback Tech LLC · Northern Colorado · authorized testing only.<br>
+      No IMSI catchers, no jam/spoof/spam/replay RF, no evil-twin or credential-harvesting tooling, no keystroke/traffic surveillance.
+      Transmit is licensed amateur bands only.</footer>
+  </div>
+</div>
+<script>
+window.addEventListener('message',e=>{const d=e.data||{};const r=document.documentElement.style;
+  if(d.type==='rjxTheme'){r.setProperty('--accent',d.a);r.setProperty('--accent2',d.b);r.setProperty('--dim',d.c);}
+  if(d.type==='rjxOpt'&&d.wm!=null){r.setProperty('--wm',d.wm);}});
+</script>
+</body>
+</html>

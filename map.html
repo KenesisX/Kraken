@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kraken · Map</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+  :root{--accent:#ff1f3d;--dim:#b3001b;--accent2:#ff5c6c;--amber:#ffb648;--cyan:#00e5ff;--bg:#0a0a0d;
+    --raised:#111116;--tile:#15151b;--fg:#f5f5f7;--muted:#8a8a93;--mono:"DejaVu Sans Mono","Courier New",monospace;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:transparent;color:var(--fg);font-family:system-ui,sans-serif;display:flex;justify-content:center;padding:6px}
+  .device{position:relative;width:100%;max-width:980px;height:min(600px,calc(100dvh - 18px));background:var(--bg);border:2px solid var(--accent);
+    border-radius:12px;overflow:hidden;box-shadow:0 0 40px rgba(255,31,61,.25);display:flex;flex-direction:column}
+  .status{height:38px;background:var(--raised);border-bottom:2px solid var(--accent);display:flex;align-items:center;gap:12px;
+    padding:0 12px;font-family:var(--mono);font-size:12px;color:var(--muted);z-index:600}
+  .status b{color:var(--fg)}.pg{margin-left:auto;color:var(--accent);font-weight:800;border:2px solid var(--accent);border-radius:6px;padding:1px 9px}
+  .tb{background:var(--tile);border:1px solid #2a2a33;color:var(--fg);border-radius:6px;padding:4px 10px;cursor:pointer;font-family:var(--mono);font-size:11px}
+  .tb.active{background:var(--dim);border-color:var(--accent);color:#fff;font-weight:700}
+  .wrap{flex:1;position:relative}
+  #map{position:absolute;inset:0;background:#05060a}
+  .panel{position:absolute;top:10px;right:10px;width:230px;max-height:calc(100% - 20px);overflow:auto;z-index:500;
+    background:rgba(10,10,13,.92);border:1px solid var(--accent);border-radius:8px;padding:10px;font-family:var(--mono);font-size:11px;line-height:1.5}
+  .panel h4{color:var(--accent);font-size:12px;margin:8px 0 4px}.panel h4:first-child{margin-top:0}
+  .panel .k{color:var(--muted)}.panel .v{color:var(--accent2)}
+  .panel .row{display:flex;justify-content:space-between}
+  .dirbtn{display:inline-block;background:var(--tile);border:1px solid #2a2a33;color:var(--cyan);border-radius:5px;padding:3px 8px;margin:2px 2px 0 0;cursor:pointer;text-decoration:none;font-size:11px}
+  .dirbtn:hover{border-color:var(--accent)}
+  .leaflet-container{background:#05060a;font-family:var(--mono)}
+  .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#0d0d12;color:var(--fg);border:1px solid var(--accent)}
+  .leaflet-popup-content{font-family:var(--mono);font-size:12px}
+  .leaflet-control-layers{background:#0d0d12 !important;color:var(--fg);border:1px solid var(--accent) !important;font-family:var(--mono);font-size:11px}
+  .leaflet-bar a{background:#15151b;color:var(--fg);border-bottom:1px solid #2a2a33}
+  .mk{border-radius:50%;border:2px solid #000;box-shadow:0 0 6px #000}
+
+  /* ===== backdrop: black + red, faint bomb watermark ===== */
+  :root{--wm:.06}
+  body{background:#0a0506}
+  body::before{content:"";position:fixed;inset:0;z-index:-2;
+    background:radial-gradient(62vmax 62vmax at 50% 42%,rgba(255,31,61,.12),transparent 62%),
+      radial-gradient(40vmax 40vmax at 50% 105%,rgba(179,0,27,.12),transparent 60%),#070405}
+  body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:var(--wm,.06);
+    background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20200%20200%27%3E%3Cg%20fill%3D%27none%27%20stroke%3D%27%23ff1f3d%27%20stroke-width%3D%275%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M100%2034%20C74%2034%2060%2060%2062%2086%20C63%20104%2078%20112%20100%20112%20C122%20112%20137%20104%20138%2086%20C140%2060%20126%2034%20100%2034%20Z%27%2F%3E%3Cpath%20d%3D%27M70%20100%20C52%20118%2046%20146%2034%20166%27%2F%3E%3Cpath%20d%3D%27M86%20110%20C78%20140%2074%20162%2070%20184%27%2F%3E%3Cpath%20d%3D%27M100%20114%20C100%20144%20100%20166%20100%20190%27%2F%3E%3Cpath%20d%3D%27M114%20110%20C122%20140%20126%20162%20130%20184%27%2F%3E%3Cpath%20d%3D%27M130%20100%20C148%20118%20154%20146%20166%20166%27%2F%3E%3C%2Fg%3E%3Ccircle%20cx%3D%2784%27%20cy%3D%2780%27%20r%3D%277%27%20fill%3D%27%23ff5c6c%27%2F%3E%3Ccircle%20cx%3D%27116%27%20cy%3D%2780%27%20r%3D%277%27%20fill%3D%27%23ff5c6c%27%2F%3E%3C%2Fsvg%3E");background-repeat:no-repeat;
+    background-position:center 46%;background-size:min(74vmin,760px)}
+</style>
+</head>
+<body>
+  <div class="device">
+    <div class="status"><span>🗺 <b>GIS Map</b></span>
+      <button class="tb" id="measureBtn" onclick="toggleMeasure()">📏 Measure</button>
+      <button class="tb" onclick="expGeo()">⬇ GeoJSON</button>
+      <button class="tb" onclick="fs()">⛶ Full</button>
+      <span id="measureOut"></span>
+      <span id="coord" style="color:#8a8a93;font-family:'DejaVu Sans Mono',monospace;font-size:11px"></span>
+      <span class="pg">MAP</span></div>
+    <div class="wrap">
+      <div id="map"></div>
+      <div class="panel" id="panel"></div>
+    </div>
+  </div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+  // ---- your location (geolocation, else Northern Colorado) ----
+  let me=[40.42,-104.99];
+  const DEV=[
+    {ty:'air',ic:'✈',c:'#ff5c6c',id:'UAL1234',nm:'UAL1234',f:1090,ll:[40.62,-104.80],d:'FL350 480kt'},
+    {ty:'air',ic:'✈',c:'#ff5c6c',id:'N772SW',nm:'N772SW',f:1090,ll:[40.28,-105.22],d:'FL120 210kt'},
+    {ty:'sea',ic:'⛵',c:'#ffb648',id:'366982330',nm:'Lake Patrol',f:162,ll:[40.55,-105.14],d:'Horsetooth Res 8kt'},
+    {ty:'wifi',ic:'📶',c:'#ff1f3d',id:'A4:2B:8C:11:9F:03',nm:'Lobby-Guest',f:2437,ll:[40.421,-104.988],d:'ch6 WPA2'},
+    {ty:'wifi',ic:'📶',c:'#ff1f3d',id:'E0:CB:4E:77:21:AA',nm:'ACME-CORP',f:2462,ll:[40.419,-104.993],d:'ch11 WPA3'},
+    {ty:'ble',ic:'🔷',c:'#7CFC9B',id:'7C:2F:80:11:0A:3E',nm:'Fitband',f:2402,ll:[40.4205,-104.9905],d:'beacon'},
+    {ty:'lora',ic:'📡',c:'#c99bff',id:'26:0B:12:9F',nm:'soil-sensor',f:915,ll:[40.44,-105.02],d:'915 MHz'},
+    {ty:'ham',ic:'⌇',c:'#00e5ff',id:'W0ABC/R',nm:'Denver Repeater',f:146.94,ll:[40.38,-104.95],d:'146.940 FM'},
+    {ty:'ham',ic:'⌇',c:'#00e5ff',id:'N0XYZ-9',nm:'APRS mobile',f:144.39,ll:[40.47,-105.05],d:'144.390 APRS'},
+    {ty:'enc',ic:'🔒',c:'#ff5c6c',id:'P25-TG4521',nm:'ENCRYPTED (P25)',f:771.1,ll:[40.40,-104.97],d:'AES-class · not decoded'},
+    {ty:'drone',ic:'🛸',c:'#ff9f1c',id:'DJI-OCU-7731',nm:'DJI drone',f:2437,ll:[40.435,-104.96],d:'2.4 GHz OcuSync'},
+    {ty:'drone',ic:'🛸',c:'#ff9f1c',id:'RID-8842',nm:'Remote-ID',f:5800,ll:[40.41,-105.01],d:'5.8 GHz Remote-ID'},
+  ];
+  const map=L.map('map',{zoomControl:true,attributionControl:true}).setView(me,12);
+
+  // ---- BASE LAYERS (street / satellite / topo / terrain raster / dark) ----
+  const A='&copy; OpenStreetMap, Esri, OpenTopoMap';
+  const base={
+    'Street (OSM)':L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:A}),
+    'Satellite (Esri)':L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:A}),
+    'Topographic':L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{attribution:A,maxZoom:17}),
+    'Terrain (raster/DEM)':L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Terrain_Base/MapServer/tile/{z}/{y}/{x}',{attribution:A}),
+    'Dark (cyber)':L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',{attribution:A}),
+  };
+  // ---- Carto Voyager (user API key; editable in Settings → API keys) ----
+  const CARTO_KEY=(()=>{try{return localStorage.getItem('krakenCarto')||'cb1_5549_1_1bb1a75dd145be1b4bc70cd6'}catch(e){return'cb1_5549_1_1bb1a75dd145be1b4bc70cd6'}})();
+  base['Voyager (Carto · your key)']=L.tileLayer('https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key='+CARTO_KEY,{attribution:'&copy; CARTO, OpenStreetMap',maxZoom:20});
+  base['Dark (cyber)'].addTo(map);
+
+  // ---- OVERLAY LAYERS (feature / infrastructure / thematic) ----
+  const rail=L.tileLayer('https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png',{opacity:.8,attribution:'OpenRailwayMap'});
+  const sea=L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',{opacity:.9,attribution:'OpenSeaMap'});
+  const devLayer=L.layerGroup().addTo(map);
+  const youLayer=L.layerGroup().addTo(map);
+  // simple thematic "RSSI density" heat via circles
+  const theme=L.layerGroup();
+
+  const wigleLayer=L.layerGroup();   // WiGLE plugin results
+  const overlays={
+    'Devices':devLayer,'Your location':youLayer,'WiGLE networks (plugin)':wigleLayer,
+    'Infrastructure (rail)':rail,'Marine (seamark)':sea,'RSSI density (thematic)':theme
+  };
+  L.control.layers(base,overlays,{collapsed:false}).addTo(map);
+
+  // ================= WiGLE PLUGIN =================
+  // Queries WiGLE's public network-search API with YOUR token (Settings → API keys).
+  // Browser CORS: WiGLE's API may refuse cross-origin fetch from the app — when that
+  // happens the native Pi app proxies it server-side. We surface a clear message + an
+  // "open on wigle.net" fallback so you always get the data.
+  const WiglePlugin=L.control({position:'topright'});
+  WiglePlugin.onAdd=function(){
+    const d=L.DomUtil.create('div');d.style.cssText='background:#0d0d12;border:1px solid var(--accent,#ff1f3d);border-radius:8px;padding:7px;font-family:monospace;font-size:11px;color:#f5f5f7;width:208px';
+    d.innerHTML='<b style="color:#ff5c6c">📶 WiGLE plugin</b>'+
+      '<input id="wq" placeholder="SSID (optional)" style="width:100%;margin:4px 0;background:#050506;border:1px solid #2a2a33;color:#f5f5f7;border-radius:5px;padding:4px;font-family:monospace;font-size:11px">'+
+      '<div style="display:flex;gap:4px"><button id="wgo" style="flex:1;background:#15151b;border:1px solid #ff1f3d;color:#ff5c6c;border-radius:5px;padding:4px;cursor:pointer;font-family:monospace;font-size:11px">Search here</button>'+
+      '<button id="wopen" style="flex:0 0 auto;background:#15151b;border:1px solid #2a2a33;color:#ffb648;border-radius:5px;padding:4px;cursor:pointer;font-family:monospace">↗</button></div>'+
+      '<div id="wmsg" style="color:#8a8a93;margin-top:4px;line-height:1.4"></div>';
+    L.DomEvent.disableClickPropagation(d);
+    setTimeout(()=>{
+      d.querySelector('#wgo').onclick=wigleSearch;
+      d.querySelector('#wopen').onclick=()=>{const c=map.getCenter();window.open('https://wigle.net/map?maplat='+c.lat+'&maplon='+c.lng+'&mapzoom='+map.getZoom(),'_blank');};
+    },0);
+    return d;
+  };
+  WiglePlugin.addTo(map);
+  function wtoken(){try{return localStorage.getItem('krakenWigle')||''}catch(e){return''}}
+  async function wigleSearch(){
+    const msg=document.getElementById('wmsg');const tok=wtoken();
+    if(!tok){msg.innerHTML='No WiGLE token. Add it in <b>Settings → API keys</b> (encoded "API Name:Token").';return;}
+    const c=map.getBounds(),q=document.getElementById('wq').value.trim();
+    msg.textContent='Querying WiGLE…';wigleLayer.clearLayers();wigleLayer.addTo(map);
+    const url='https://api.wigle.net/api/v2/network/search?onlymine=false&latrange1='+c.getSouth().toFixed(4)+
+      '&latrange2='+c.getNorth().toFixed(4)+'&longrange1='+c.getWest().toFixed(4)+'&longrange2='+c.getEast().toFixed(4)+
+      (q?'&ssid='+encodeURIComponent(q):'')+'&resultsPerPage=100';
+    try{
+      const r=await fetch(url,{headers:{'Authorization':'Basic '+tok,'Accept':'application/json'}});
+      if(!r.ok){msg.innerHTML='WiGLE '+r.status+'. Check token, or use ↗ (native Pi app proxies this server-side).';return;}
+      const j=await r.json();const nets=j.results||[];
+      nets.forEach(n=>{if(n.trilat&&n.trilong){
+        L.circleMarker([n.trilat,n.trilong],{radius:5,color:'#ffb648',fillColor:'#ff1f3d',fillOpacity:.7,weight:1})
+         .bindPopup('<b>'+(n.ssid||'(hidden)')+'</b><br>'+n.netid+'<br>'+(n.encryption||'')+' · ch '+(n.channel||'?')+
+            '<br><a href="#" onclick="tune('+freqOfWifi(n.channel)+');return false">View signal →</a>').addTo(wigleLayer);
+      }});
+      msg.innerHTML='Plotted <b>'+nets.length+'</b> WiGLE networks. '+(nets.length>=100?'(capped at 100)':'');
+    }catch(e){msg.innerHTML='Browser blocked the request (CORS). Use ↗ to open on wigle.net, or run the search in the native Pi app (it proxies server-side).';}
+  }
+  function freqOfWifi(ch){ch=+ch||1;return ch<=14?(2412+(ch-1)*5):(5000+ch*5);} // MHz approx
+  window.freqOfWifi=freqOfWifi;
+
+  // ================= GEOFENCE (zone presence — authorized site/asset monitoring) =================
+  const geoLayer=L.layerGroup().addTo(map);let geoCircle=null,geoR=300,geoInside=new Set();
+  const GeoCtl=L.control({position:'topright'});
+  GeoCtl.onAdd=function(){const d=L.DomUtil.create('div');d.style.cssText='background:#0d0d12;border:1px solid var(--accent,#ff1f3d);border-radius:8px;padding:7px;font-family:monospace;font-size:11px;color:#f5f5f7;width:208px;margin-top:6px';
+    d.innerHTML='<b style="color:#ff5c6c">📍 Geofence</b>'+
+      '<div style="margin:4px 0">radius <b id="grv">300</b> m<input id="grr" type="range" min="50" max="3000" value="300" style="width:100%"></div>'+
+      '<div style="display:flex;gap:4px"><button id="gset" style="flex:1;background:#15151b;border:1px solid #ff1f3d;color:#ff5c6c;border-radius:5px;padding:4px;cursor:pointer;font-family:monospace">Set zone (center)</button>'+
+      '<button id="gclr" style="flex:0 0 auto;background:#15151b;border:1px solid #2a2a33;color:#8a8a93;border-radius:5px;padding:4px;cursor:pointer;font-family:monospace">✕</button></div>'+
+      '<div id="gmsg" style="color:#8a8a93;margin-top:4px;line-height:1.4">Monitor your own site/assets — alerts when devices enter or leave the zone.</div>';
+    L.DomEvent.disableClickPropagation(d);
+    setTimeout(()=>{
+      d.querySelector('#grr').oninput=function(){geoR=+this.value;d.querySelector('#grv').textContent=geoR;if(geoCircle)geoCircle.setRadius(geoR);checkGeo();};
+      d.querySelector('#gset').onclick=()=>{const c=map.getCenter();if(geoCircle)geoLayer.removeLayer(geoCircle);
+        geoCircle=L.circle(c,{radius:geoR,color:'#ffb648',weight:2,dashArray:'6 5',fillColor:'#ffb648',fillOpacity:.08}).addTo(geoLayer);geoInside=new Set();checkGeo();};
+      d.querySelector('#gclr').onclick=()=>{if(geoCircle){geoLayer.removeLayer(geoCircle);geoCircle=null;}d.querySelector('#gmsg').textContent='Zone cleared.';};
+    },0);
+    return d;};
+  GeoCtl.addTo(map);
+  function checkGeo(){if(!geoCircle)return;const c=geoCircle.getLatLng();const now=new Set();let rows=[];
+    DEV.forEach(dv=>{const m=map.distance(c,L.latLng(dv.ll[0],dv.ll[1]));if(m<=geoR){const nm=dv.name||dv.type||dv.mod||'device';now.add(nm);rows.push(nm+' ('+Math.round(m)+'m)');}});
+    const entered=[...now].filter(x=>!geoInside.has(x)),left=[...geoInside].filter(x=>!now.has(x));geoInside=now;
+    const msg=document.getElementById('gmsg');if(msg)msg.innerHTML='<b style="color:#ffb648">'+now.size+' inside</b>'+(rows.length?'<br>'+rows.slice(0,6).join('<br>'):'')+
+      (entered.length?'<br><span style="color:#2fe24a">+ entered: '+entered.join(', ')+'</span>':'')+(left.length?'<br><span style="color:#ff5c6c">- left: '+left.join(', ')+'</span>':'');}
+  setInterval(checkGeo,3000);
+
+  // ---- markers ----
+  function icon(d){return L.divIcon({className:'',html:`<div class="mk" style="width:16px;height:16px;background:${d.c};display:flex;align-items:center;justify-content:center;font-size:10px">${d.ic}</div>`,iconSize:[16,16]});}
+  function hav(a,b){const R=6371,r=x=>x*Math.PI/180,dLat=r(b[0]-a[0]),dLon=r(b[1]-a[1]);
+    const s=Math.sin(dLat/2)**2+Math.cos(r(a[0]))*Math.cos(r(b[0]))*Math.sin(dLon/2)**2;return 2*R*Math.asin(Math.sqrt(s));}
+  function eta(km,kmh){let m=km/kmh*60;return m<60?m.toFixed(0)+' min':(m/60).toFixed(1)+' h';}
+  function popup(d){const km=hav(me,d.ll);
+    const g=(mode)=>`https://www.google.com/maps/dir/?api=1&origin=${me[0]},${me[1]}&destination=${d.ll[0]},${d.ll[1]}&travelmode=${mode}`;
+    return `<b style="color:${d.c}">${d.ic} ${d.nm}</b><br><span style="color:#8a8a93">${d.id} · ${d.f} MHz</span><br>${d.d}<br>
+      <span style="color:#ffb648">${km.toFixed(2)} km from you</span><br>
+      🚶 ${eta(km,5)} · 🚗 ${eta(km,60)} · ✈ ${eta(km,800)}<br>
+      <a class="dirbtn" target="_blank" href="${g('walking')}">Walk</a>
+      <a class="dirbtn" target="_blank" href="${g('driving')}">Drive</a>
+      <span class="dirbtn" onclick="tune(${d.f},'${d.nm}')">View signal →</span>`;}
+  const markers=[];
+  DEV.forEach(d=>{const m=L.marker(d.ll,{icon:icon(d)}).bindPopup(popup(d));m.addTo(devLayer);markers.push([d,m]);
+    L.circle(d.ll,{radius:Math.max(40,(100+d.f? 0:0))+ ( -0 ),color:d.c,weight:0,fillColor:d.c,fillOpacity:.12}).addTo(theme);});
+
+  function placeYou(){youLayer.clearLayers();
+    L.circleMarker(me,{radius:8,color:'#00e5ff',fillColor:'#00e5ff',fillOpacity:.9}).bindPopup('📍 You').addTo(youLayer);
+    L.circle(me,{radius:300,color:'#00e5ff',weight:1,fillOpacity:.04}).addTo(youLayer);}
+  placeYou();
+  if(navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>{me=[p.coords.latitude,p.coords.longitude];placeYou();map.setView(me,13);spatial();},()=>{});
+
+  // ---- distance measure ----
+  let measuring=false,mPts=[],mLine=null;
+  function toggleMeasure(){measuring=!measuring;document.getElementById('measureBtn').classList.toggle('active',measuring);
+    mPts=[];if(mLine){map.removeLayer(mLine);mLine=null;}document.getElementById('measureOut').textContent=measuring?'click two points':'';}
+  map.on('click',e=>{if(!measuring)return;mPts.push([e.latlng.lat,e.latlng.lng]);
+    if(mPts.length===2){const km=hav(mPts[0],mPts[1]);if(mLine)map.removeLayer(mLine);
+      mLine=L.polyline(mPts,{color:'#ff1f3d',dashArray:'6 5'}).addTo(map);
+      const mid=[(mPts[0][0]+mPts[1][0])/2,(mPts[0][1]+mPts[1][1])/2];
+      L.popup().setLatLng(mid).setContent('Δ '+km.toFixed(3)+' km / '+(km*0.621).toFixed(3)+' mi').openOn(map);
+      document.getElementById('measureOut').innerHTML='<span style="color:#ffb648">'+km.toFixed(3)+' km</span>';mPts=[];}});
+
+  // ---- spatial analysis panel ----
+  function spatial(){const lls=DEV.map(d=>d.ll);
+    const cen=[lls.reduce((s,p)=>s+p[0],0)/lls.length,lls.reduce((s,p)=>s+p[1],0)/lls.length];
+    const spread=(lls.reduce((s,p)=>s+hav(cen,p),0)/lls.length);
+    const lat=lls.map(p=>p[0]),lon=lls.map(p=>p[1]);
+    const near=DEV.map(d=>[d,hav(me,d.ll)]).sort((a,b)=>a[1]-b[1])[0];
+    const byType={};DEV.forEach(d=>byType[d.ty]=(byType[d.ty]||0)+1);
+    document.getElementById('panel').innerHTML=
+      '<h4>⌖ Spatial analysis</h4>'+
+      '<div class="row"><span class="k">emitters</span><span class="v">'+DEV.length+'</span></div>'+
+      '<div class="row"><span class="k">nearest</span><span class="v">'+near[0].nm+'</span></div>'+
+      '<div class="row"><span class="k">distance</span><span class="v">'+near[1].toFixed(2)+' km</span></div>'+
+      '<div class="row"><span class="k">centroid</span><span class="v">'+cen[0].toFixed(3)+','+cen[1].toFixed(3)+'</span></div>'+
+      '<div class="row"><span class="k">spread</span><span class="v">'+spread.toFixed(2)+' km</span></div>'+
+      '<div class="row"><span class="k">bbox</span><span class="v">'+(Math.max(...lat)-Math.min(...lat)).toFixed(3)+'°×'+(Math.max(...lon)-Math.min(...lon)).toFixed(3)+'°</span></div>'+
+      '<h4>by type</h4>'+Object.entries(byType).map(([k,v])=>'<div class="row"><span class="k">'+k+'</span><span class="v">'+v+'</span></div>').join('')+
+      '<h4>layers</h4><div class="k">Base: street · satellite · topo · terrain(DEM) · dark.<br>Overlays: devices · infrastructure(rail) · marine · thematic density. Toggle top-right.</div>'+
+      '<h4>measure</h4><div class="k">📏 Measure → click two points for distance/bearing. Click a device for directions (walk/car/plane) + View signal.</div>';}
+  spatial();
+
+  // ---- GIS tools: scale, coordinates, export, fullscreen ----
+  L.control.scale({imperial:true,metric:true}).addTo(map);
+  map.on('mousemove',e=>{document.getElementById('coord').textContent=e.latlng.lat.toFixed(5)+', '+e.latlng.lng.toFixed(5);});
+  function expGeo(){const fc={type:'FeatureCollection',features:DEV.map(d=>({type:'Feature',
+    properties:{name:d.nm,type:d.ty,id:d.id,freq_MHz:d.f,detail:d.d,rssi_dBm:null},
+    geometry:{type:'Point',coordinates:[d.ll[1],d.ll[0]]}}))};
+    const b=new Blob([JSON.stringify(fc,null,2)],{type:'application/geo+json'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='emitters.geojson';a.click();}
+  function fs(){const el=document.querySelector('.device');
+    if(!document.fullscreenElement){el.requestFullscreen&&el.requestFullscreen();}else{document.exitFullscreen();}}
+
+  // ---- tune → Signal page (via shell) ----
+  function tune(f,name){if(window.parent!==window)window.parent.postMessage({type:'rjxTune',freq:f,label:name},'*');}
+  </script>
+</body>
+</html>

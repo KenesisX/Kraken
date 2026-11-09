@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kraken · Signal Display</title>
+<style>
+  :root{--accent:#ff1f3d;--dim:#b3001b;--accent2:#ff5c6c;--amber:#ffb648;--bg:#0a0a0d;
+    --raised:#111116;--tile:#15151b;--hot:#2a0e14;--fg:#f5f5f7;--muted:#8a8a93;
+    --mono:"DejaVu Sans Mono","Courier New",monospace;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#000;color:var(--fg);font-family:system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;gap:12px;padding:20px}
+  h1{font-family:var(--mono);color:var(--accent);font-size:15px;letter-spacing:1px}
+  .hint{color:var(--muted);font-size:12px;max-width:920px;text-align:center}
+  .device{position:relative;width:920px;max-width:97vw;height:min(580px,calc(100dvh - 18px));background:var(--bg);border:2px solid var(--accent);
+    border-radius:12px;overflow:hidden;box-shadow:0 0 48px rgba(255,31,61,.28);display:flex;flex-direction:column}
+  .status{height:36px;background:var(--raised);border-bottom:2px solid var(--accent);display:flex;align-items:center;gap:14px;
+    padding:0 12px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .status b{color:var(--fg)} .pg{margin-left:auto;color:var(--accent);font-weight:800;border:2px solid var(--accent);border-radius:6px;padding:1px 9px}
+  .dbody{flex:1;display:flex;min-height:0}
+  .rail{width:112px;border-right:1px solid #1d1d25;overflow-y:auto;padding:8px 7px;display:flex;flex-direction:column;gap:6px}
+  .rail::-webkit-scrollbar{width:8px}.rail::-webkit-scrollbar-thumb{background:var(--dim);border-radius:4px}
+  .rb{flex:0 0 auto;height:46px;width:100%;border-radius:6px;background:var(--tile);border:1px solid #2a2a33;color:var(--fg);
+      font-family:var(--mono);font-size:10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;overflow:hidden}
+  .rb .ic{font-size:15px;line-height:1}.rb:hover{background:var(--hot);border-color:var(--accent)}
+  .rb.active{background:var(--dim);border:1px solid var(--accent);color:#fff;font-weight:700}
+  .main{flex:1;display:flex;flex-direction:column;min-width:0;padding:9px;gap:7px}
+  .head{display:flex;align-items:baseline;gap:12px}
+  .ttl{font-family:var(--mono);font-size:15px;font-weight:700;color:var(--accent)}.desc{color:var(--muted);font-size:12px}
+  .screen{flex:1;background:#050506;border:1px solid var(--dim);border-radius:6px;position:relative;overflow:hidden;min-height:150px}
+  canvas{display:block;width:100%;height:100%;cursor:crosshair}
+  .ctls select,.ctls input[type=range]{background:#050506;border:1px solid #2a2a33;color:var(--amber);font-family:var(--mono);font-size:11px;border-radius:4px;vertical-align:middle}
+  .ctls input[type=range]{width:74px}
+  .panel{position:absolute;font-family:var(--mono);font-size:10px;background:rgba(10,10,13,.86);border:1px solid #2a2a33;
+    border-radius:6px;padding:6px 9px;pointer-events:none;line-height:1.5;text-shadow:0 0 4px #000}
+  #info{top:6px;left:6px;color:var(--fg)}#info .k{color:var(--muted)}#info .v{color:var(--amber)}#info b{color:var(--accent2)}
+  #delta{bottom:6px;left:6px;color:var(--fg);border-color:var(--accent)}#delta .k{color:var(--muted)}#delta .v{color:var(--accent2)}
+  .rd{position:absolute;top:6px;right:9px;font-family:var(--mono);font-size:12px;color:var(--amber);text-shadow:0 0 6px #000;pointer-events:none;text-align:right}
+  .ctls{display:flex;gap:6px;font-family:var(--mono);font-size:11px;color:var(--muted);flex-wrap:wrap;align-items:center}
+  .chip{background:var(--tile);border:1px solid #2a2a33;border-radius:5px;padding:4px 8px}.chip b{color:var(--accent2)}
+  .zbtn{background:var(--tile);border:1px solid var(--accent);color:var(--accent);border-radius:5px;padding:4px 10px;cursor:pointer;font-family:var(--mono);font-weight:700}
+  .zbtn:hover{background:var(--hot)}
+  .markers{height:116px;display:flex;flex-direction:column;border:1px solid #1d1d25;border-radius:6px;background:var(--raised)}
+  .mhead{display:flex;align-items:center;gap:8px;padding:5px 8px;border-bottom:1px solid #1d1d25;font-family:var(--mono);font-size:11px;color:var(--accent2)}
+  .mhead .sp{flex:1}
+  .mbtn{background:var(--tile);border:1px solid #2a2a33;color:var(--fg);border-radius:5px;padding:3px 9px;cursor:pointer;font-size:11px}
+  .mbtn:hover{border-color:var(--accent)}
+  .mlist{flex:1;overflow:auto;font-family:var(--mono);font-size:11px}
+  .mrow{display:flex;gap:10px;padding:4px 8px;border-bottom:1px solid #121218;align-items:center}
+  .mrow:hover{background:var(--hot)}.mrow .t{color:var(--muted)}.mrow .f{color:var(--amber);font-weight:700}.mrow .p{color:var(--fg)}.mrow .sp{flex:1}
+  .mrow.A .f::before{content:'A ';color:var(--accent)}.mrow.B .f::before{content:'B ';color:var(--accent)}
+  .copy{background:transparent;border:1px solid #333;color:var(--accent2);border-radius:4px;padding:1px 8px;cursor:pointer;font-size:10px}
+  .copy:hover{border-color:var(--accent)}.empty{color:var(--muted);padding:10px;text-align:center}
+  #rfpanel{position:absolute;inset:0;background:#070709;overflow:auto;padding:12px;display:none;font-family:var(--mono);font-size:12px}
+  #rfpanel.show{display:block}#rfpanel h3{color:var(--accent);font-size:13px;margin-bottom:10px}
+  .rfgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .rfin{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--tile);border:1px solid #2a2a33;border-radius:5px;padding:5px 8px;margin-bottom:6px}
+  .rfin label{color:var(--muted)}.rfin input{width:96px;background:#050506;border:1px solid #2a2a33;color:var(--amber);border-radius:4px;padding:3px 6px;font-family:var(--mono)}
+  .rfout{display:flex;justify-content:space-between;background:#0e0e13;border:1px solid #1d1d25;border-radius:5px;padding:5px 8px;margin-bottom:6px}
+  .rfout .k{color:var(--muted)}.rfout .v{color:var(--accent2);font-weight:700}
+  #xpanel{position:absolute;inset:0;background:#070709;overflow:auto;padding:12px;display:none;font-family:var(--mono);font-size:12px}
+  #xpanel.show{display:block}#xpanel h3{color:var(--accent);font-size:13px;margin-bottom:10px}
+  #xpanel .note{color:var(--muted);font-size:11px;margin-top:12px;line-height:1.5}
+  /* ===== backdrop: black + red, faint bomb watermark ===== */
+  :root{--wm:.06}
+  body{background:#0a0506}
+  body::before{content:"";position:fixed;inset:0;z-index:-2;
+    background:radial-gradient(62vmax 62vmax at 50% 42%,rgba(255,31,61,.12),transparent 62%),
+      radial-gradient(40vmax 40vmax at 50% 105%,rgba(179,0,27,.12),transparent 60%),#070405}
+  body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:var(--wm,.06);
+    background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20200%20200%27%3E%3Cg%20fill%3D%27none%27%20stroke%3D%27%23ff1f3d%27%20stroke-width%3D%275%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M100%2034%20C74%2034%2060%2060%2062%2086%20C63%20104%2078%20112%20100%20112%20C122%20112%20137%20104%20138%2086%20C140%2060%20126%2034%20100%2034%20Z%27%2F%3E%3Cpath%20d%3D%27M70%20100%20C52%20118%2046%20146%2034%20166%27%2F%3E%3Cpath%20d%3D%27M86%20110%20C78%20140%2074%20162%2070%20184%27%2F%3E%3Cpath%20d%3D%27M100%20114%20C100%20144%20100%20166%20100%20190%27%2F%3E%3Cpath%20d%3D%27M114%20110%20C122%20140%20126%20162%20130%20184%27%2F%3E%3Cpath%20d%3D%27M130%20100%20C148%20118%20154%20146%20166%20166%27%2F%3E%3C%2Fg%3E%3Ccircle%20cx%3D%2784%27%20cy%3D%2780%27%20r%3D%277%27%20fill%3D%27%23ff5c6c%27%2F%3E%3Ccircle%20cx%3D%27116%27%20cy%3D%2780%27%20r%3D%277%27%20fill%3D%27%23ff5c6c%27%2F%3E%3C%2Fsvg%3E");background-repeat:no-repeat;
+    background-position:center 46%;background-size:min(74vmin,760px)}
+</style>
+</head>
+<body>
+  <h1>KRAKEN — SIGNAL DISPLAY · forensic analyzer</h1>
+  <div class="device">
+    <div class="status"><span>📡 <b>RTL-SDR V4</b></span><span id="st-bw">live 2.4 MS/s</span>
+      <span>range <b>24–1766 MHz</b></span><span class="pg">SIGNAL</span></div>
+    <div class="dbody">
+      <div class="rail" id="rail"></div>
+      <div class="main">
+        <div class="head"><div class="ttl" id="ttl">Spectrum</div><div class="desc" id="desc"></div></div>
+        <div class="screen">
+          <canvas id="cv"></canvas>
+          <div class="panel" id="info"></div>
+          <div class="panel" id="delta" style="display:none"></div>
+          <div class="rd" id="rd"></div>
+          <div id="xpanel"></div>
+          <div id="rfpanel">
+            <h3>⚛ RF Physics — live link budget & propagation</h3>
+            <div class="rfgrid">
+              <div>
+                <div class="rfin"><label>Frequency (MHz)</label><input id="rf-f" value="433.92" oninput="rfCalc()"></div>
+                <div class="rfin"><label>Distance (km)</label><input id="rf-d" value="1" oninput="rfCalc()"></div>
+                <div class="rfin"><label>TX power (dBm)</label><input id="rf-pt" value="20" oninput="rfCalc()"></div>
+                <div class="rfin"><label>TX gain (dBi)</label><input id="rf-gt" value="2" oninput="rfCalc()"></div>
+                <div class="rfin"><label>RX gain (dBi)</label><input id="rf-gr" value="2" oninput="rfCalc()"></div>
+                <div class="rfin"><label>System loss (dB)</label><input id="rf-l" value="2" oninput="rfCalc()"></div>
+                <div class="rfin"><label>RX sensitivity (dBm)</label><input id="rf-s" value="-110" oninput="rfCalc()"></div>
+                <div class="rfin"><label>Rel. velocity (m/s)</label><input id="rf-v" value="30" oninput="rfCalc()"></div>
+              </div>
+              <div id="rfout"></div>
+            </div>
+          </div>
+        </div>
+        <div class="ctls">
+          <div class="chip">Center <b id="c-cf">433.920</b> MHz</div>
+          <div class="chip">Span <b id="c-sp">2.000</b> MHz</div>
+          <button class="zbtn" onclick="zoom(0.66)">＋</button>
+          <button class="zbtn" onclick="zoom(1.5)">－</button>
+          <button class="zbtn" onclick="resetView()">⟲</button>
+          <span class="chip">click = mark A/B · drag = pan · wheel = zoom</span>
+          <span class="sp" style="flex:1"></span>
+          <div class="chip" id="noisechip">noise <b>—</b></div>
+          <button class="zbtn" id="infoBtn" onclick="toggleInfo()">ⓘ Info</button>
+        </div>
+        <div class="ctls">
+          <span class="chip">Mode <select id="mode" onchange="demMode=this.value">
+            <option>WFM</option><option>NFM</option><option>AM</option><option>USB</option><option>LSB</option><option>CW</option></select></span>
+          <span class="chip">Sql <input type="range" min="-100" max="-20" value="-70" oninput="squelch=+this.value"></span>
+          <span class="chip"><label><input type="checkbox" checked style="accent-color:var(--accent)"> AGC</label></span>
+          <span class="chip">Map <select id="cm" onchange="CM=+this.value"><option value="0">Red</option><option value="1">Inferno</option><option value="2">Gray</option></select></span>
+          <span class="chip">⭐ <select id="bm" onchange="tuneTo(+this.value);this.selectedIndex=0"></select></span>
+          <button class="zbtn" id="recBtn" onclick="REC=!REC;this.textContent=REC?'● REC':'Rec'">Rec</button>
+          <button class="zbtn" id="logBtn" onclick="logRX()">📌 Log RX</button>
+          <span class="sp" style="flex:1"></span>
+          <span class="chip" style="color:#8a8a93">right-click graph = toggle info</span>
+        </div>
+        <div class="markers">
+          <div class="mhead">⌖ Markers — click two points for A→B delta
+            <span class="sp"></span>
+            <button class="mbtn" onclick="copyAll()">Copy all</button>
+            <button class="mbtn" onclick="clearM()">Clear</button></div>
+          <div class="mlist" id="mlist"><div class="empty">Click a peak to drop marker A, click again for B — delta appears below the graph.</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hint">gqrx-style: hover for live RSSI/SNR/variance, click two points to measure Δfrequency · ΔRSSI · Δtime
+    (caliper drawn between A and B). The info panel shows every detail — RSSI, noise floor, SNR, −3 dB bandwidth,
+    variance, channel power, crest factor, modulation. Copy any/all for the forensic report.</div>
+
+<script>
+const D=[['∿','Spectrum','FFT — click A/B, wheel zoom','spectrum'],
+ ['▦','Waterfall','scrolling spectrum','waterfall'],['▤','Spectrogram','time × freq','spectro'],
+ ['✦','Constellation','IQ scatter','constel'],['⎓','Oscilloscope','time domain','scope'],
+ ['◎','Radar PPI','bearing/range','radar'],['◗','Sonar','range waterfall','sonar'],
+ ['◠','Persistence','eye','persist'],['✧','Vector','polar phase','vector'],['▮','Power','dBm meter','power'],
+ ['⚛','RF Physics','path loss · link budget · doppler','rfphysics'],
+ ['⟲','Monitor','real-time auto-detect + log','monitor'],
+ ['⌇','HAM','bands · modes · decode','ham'],
+ ['🔒','Encryption','entropy · classify (no decrypt)','crypto'],
+ ['⚙','RX/TX/TCXO','osc drift · phase noise · harmonics','rxtx'],
+ ['✺','GPS/Sat','GNSS sky plot + fix','gnss']];
+const SIGS=[{f:315.0,w:.02,a:.72,m:'ASK'},{f:433.92,w:.03,a:.92,m:'OOK'},{f:868.3,w:.02,a:.66,m:'LoRa'},
+ {f:915.0,w:.05,a:.6,m:'FHSS'},{f:100.1,w:.09,a:.85,m:'WBFM'},{f:137.1,w:.03,a:.7,m:'APT'},
+ {f:162.0,w:.012,a:.62,m:'AIS'},{f:1090.0,w:.012,a:.8,m:'ADS-B'},{f:1575.42,w:.02,a:.5,m:'GPS'}];
+const FMIN=1,FMAX=6000,MINSPAN=0.025,MAXSPAN=FMAX-FMIN;
+let center=433.92,span=2.0,active='spectrum',t0=performance.now();
+let W=0,H=0,cv=document.getElementById('cv'),ctx=cv.getContext('2d'),rd=document.getElementById('rd');
+let mouseX=-1,mouseY=-1,hover=false,dragging=false,lastX=0,movedWhileDown=0;
+const markers=[],FREQAXIS=new Set(['spectrum','waterfall','spectro','power','monitor']);
+let A=null,B=null;const $=id=>document.getElementById(id);
+let infoOn=false,CM=0,demMode='WFM',squelch=-70,REC=false;
+const MODES={WFM:0.2,NFM:0.0125,AM:0.01,USB:0.0027,LSB:0.0027,CW:0.0005};
+// Full band plan — RX / detect / monitor / measure (tuning presets, 1 MHz–6 GHz)
+const BANDPLAN=[
+ ['Aero · Marine · Weather',[['FM bcast 100.1',100.1],['Air VHF 124 (AM)',124],['ACARS 131.55',131.55],['NOAA wx 137.1',137.1],['APRS 144.39',144.39],['Marine VHF 156.8',156.8],['AIS 162.0',162.0],['UAT 978',978],['ADS-B 1090',1090]]],
+ ['ISM',[['ISM 315',315],['ISM 433.92',433.92],['LoRa/ISM 868',868],['ISM/LoRa 915',915],['ISM 2.45G',2450],['ISM 5.8G',5800]]],
+ ['Cellular 2G/3G/4G/5G · GSM',[['GSM850 DL 881.5',881.5],['GSM900 DL 942',942],['LTE700 751',751],['PCS1900 1960',1960],['AWS 2132',2132],['LTE2600 2650',2650],['5G n41 2593',2593],['5G n78 3500',3500],['5G n77 3750',3750]]],
+ ['GNSS',[['GPS L1 1575.42',1575.42],['GPS L2 1227.6',1227.6],['GPS L5 1176.45',1176.45],['GLONASS 1602',1602],['Galileo E1 1575.42',1575.42],['BeiDou B1 1561.098',1561.098]]],
+ ['802.11 · Zigbee · Thread',[['WiFi ch1 2412',2412],['WiFi ch6 2437',2437],['WiFi ch11 2462',2462],['WiFi5 ch36 5180',5180],['WiFi5 ch149 5745',5745],['Zigbee ch11 2405',2405],['Zigbee ch26 2480',2480],['Thread 2405',2405]]],
+ ['Satphone',[['Iridium 1621',1621],['Inmarsat-L 1542',1542],['Globalstar 2491',2491],['Thuraya 1542.5',1542.5]]],
+ ['Other',[['POCSAG 929',929],['PMR446',446],['GMRS 462.5',462.5],['DMR 450',450],['2m 146.52',146.52],['70cm 446',446]]]
+];
+function toggleInfo(){infoOn=!infoOn;$('infoBtn').textContent=infoOn?'ⓘ Info ✓':'ⓘ Info';
+  if(!infoOn){$('info').style.display='none';$('delta').style.display='none';}updDelta();}
+function tuneTo(f){if(!(f>0))return;center=Math.max(FMIN+0.3,Math.min(6000,f));span=0.5;active='spectrum';
+  $('ttl').textContent='Spectrum';clear();rail();upd();}
+function logRX(){ // capture current tuning as an RX record -> Records page (page 7)
+  let s=null;try{s=statsAt(center,performance.now()/1000);}catch(e){}
+  const f=center.toFixed(3),rssi=(s&&s.rssi!=null)?s.rssi.toFixed(0):'',snr=(s&&s.snr!=null)?s.snr.toFixed(0):'';
+  const rec={t:Date.now(),type:'RX',title:'RX '+f+' MHz',freq:f,mode:demMode,rssi,
+    note:'RX log @ '+f+' MHz · '+demMode+' · view:'+active+(snr?' · SNR '+snr+'dB':'')+(REC?' · ●REC':'')};
+  try{const a=JSON.parse(localStorage.getItem('krakenRecords')||'[]');a.push(rec);localStorage.setItem('krakenRecords',JSON.stringify(a));}catch(e){}
+  try{parent.postMessage({type:'rjxRecord',rec},'*');}catch(e){}
+  const b=$('logBtn');b.textContent='✓ Logged';setTimeout(()=>b.textContent='📌 Log RX',900);}
+function drawDemod(){const bw=MODES[demMode]||0.012,xa=f2x(center-bw/2),xb=f2x(center+bw/2);
+  ctx.fillStyle='rgba(0,229,255,.10)';ctx.fillRect(xa,0,Math.max(2,xb-xa),H);
+  ctx.strokeStyle='rgba(0,229,255,.5)';ctx.beginPath();ctx.moveTo(xa,0);ctx.lineTo(xa,H);ctx.moveTo(xb,0);ctx.lineTo(xb,H);ctx.stroke();
+  const sy=H-((squelch+100)/90)*H;ctx.strokeStyle='rgba(255,45,45,.6)';ctx.setLineDash([5,4]);
+  ctx.beginPath();ctx.moveTo(0,sy);ctx.lineTo(W,sy);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='#8a8a93';ctx.font='10px monospace';
+  ctx.fillText(demMode+' '+(bw*1000).toFixed(bw<0.01?1:0)+'k  sql '+squelch+'dBm'+(REC?'  ● REC':''),8,14);}
+function resize(){const r=cv.parentElement.getBoundingClientRect();W=cv.width=r.width;H=cv.height=r.height;clear();}
+function clear(){ctx.fillStyle='#050506';ctx.fillRect(0,0,W,H);}
+window.addEventListener('resize',resize);
+function x2f(x){return center-span/2+(x/W)*span;}
+function f2x(f){return (f-(center-span/2))/span*W;}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+function fmtF(f){return f.toFixed(f<100?4:3);}
+function dHz(df){df=Math.abs(df);return df<1?(df*1000).toFixed(1)+' kHz':df.toFixed(4)+' MHz';}
+function dbm(v){return -100+v*90;}
+function rail(){const R=$('rail');R.innerHTML='';D.forEach(d=>{const b=document.createElement('button');
+  b.className='rb'+(d[3]===active?' active':'');b.innerHTML='<span class="ic">'+d[0]+'</span><span>'+d[1]+'</span>';
+  b.onclick=()=>{active=d[3];$('ttl').textContent=d[1];$('desc').textContent=d[2];clear();rail();
+    const rp=$('rfpanel');if(rp)rp.classList.toggle('show',active==='rfphysics');if(active==='rfphysics')rfCalc();
+    const xp=$('xpanel');const isx=['ham','crypto','rxtx'].includes(active);if(xp)xp.classList.toggle('show',isx);if(isx)_xlast=0;
+    $('info').style.display=(infoOn&&FREQAXIS.has(active)&&active!=='rfphysics')?'block':'none';};R.appendChild(b);});}
+function heat(v){v=clamp(v,0,1);
+  if(CM===2){let g=(v*255)|0;return`rgb(${g},${g},${g})`;}
+  if(CM===1){let r=Math.min(255,(v*300))|0,g=Math.max(0,(v*260-70))|0,b=(140*Math.sin(v*3.14159))|0;return`rgb(${r},${g},${Math.max(0,b)})`;}
+  if(v<.35)return`rgb(${(30+v/.35*120)|0},0,${(8+v*24)|0})`;if(v<.7){let k=(v-.35)/.35;return`rgb(255,${(k*120)|0},${(30*k)|0})`;}let k=(v-.7)/.3;return`rgb(255,${(120+k*120)|0},${(30+k*190)|0})`;}
+function specF(f,t){let v=.10+Math.random()*.05;for(const s of SIGS){let c=s.f+0.004*Math.sin(t*.6+s.f);v+=s.a*Math.exp(-((f-c)**2)/(2*s.w*s.w))*(0.82+0.18*Math.sin(t*3+s.f));}return Math.min(1,v);}
+function nearSig(f){let best=null,bd=1e9;for(const s of SIGS){let d=Math.abs(f-s.f);if(d<bd){bd=d;best=s;}}return{s:best,d:bd};}
+function modAt(f){let n=nearSig(f);return n.s&&n.d<n.s.w*4?n.s.m:'—';}
+function noiseFloor(t){let a=[];for(let i=0;i<64;i++)a.push(dbm(specF(center-span/2+Math.random()*span,t)));a.sort((x,y)=>x-y);return a[(a.length*0.2)|0];}
+function bwAt(f){let n=nearSig(f);if(n.s&&n.d<n.s.w*4)return 2*n.s.w*Math.sqrt(2*Math.log(2));return 0;}
+function statsAt(f,t){let s=[];for(let i=0;i<48;i++)s.push(dbm(specF(f,t+i*0.008)));
+  let mean=s.reduce((a,b)=>a+b,0)/s.length;let variance=s.reduce((a,b)=>a+(b-mean)**2,0)/s.length;
+  let peak=Math.max(...s);let noise=noiseFloor(t);let snr=mean-noise;let bw=bwAt(f);
+  let chp=bw>0?mean+10*Math.log10(bw*1e6):mean;let crest=peak-mean;
+  return{rssi:mean,variance,sd:Math.sqrt(variance),peak,noise,snr,bw,chp,crest,mod:modAt(f)};}
+
+function gridFreq(){ctx.strokeStyle='rgba(179,0,27,.3)';ctx.lineWidth=1;ctx.fillStyle='#8a8a93';ctx.font='10px monospace';
+  for(let i=0;i<=8;i++){let x=W*i/8,f=x2f(x);ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();if(i<8)ctx.fillText(fmtF(f),x+2,H-4);}
+  for(let j=1;j<5;j++){let y=H*j/5;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();ctx.fillText(((-100+(5-j)/5*90)|0)+'dBm',2,y-2);}}
+function drawMarks(){[A,B].forEach((m,i)=>{if(!m)return;let x=f2x(m.f);if(x<0||x>W)return;
+  ctx.strokeStyle=i?'#ffb648':'#ff5c6c';ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle=i?'#ffb648':'#ff5c6c';ctx.font='11px monospace';ctx.fillText((i?'B ':'A ')+fmtF(m.f),x+3,13+i*13);});
+  if(A&&B){let xa=f2x(A.f),xb=f2x(B.f);ctx.strokeStyle='#ff1f3d';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(xa,20);ctx.lineTo(xb,20);
+    ctx.moveTo(xa,15);ctx.lineTo(xa,25);ctx.moveTo(xb,15);ctx.lineTo(xb,25);ctx.stroke();
+    ctx.fillStyle='#ff5c6c';ctx.font='11px monospace';ctx.fillText('Δ '+dHz(B.f-A.f),(xa+xb)/2-30,34);}}
+function drawCursor(t){if(!hover)return;ctx.strokeStyle='rgba(255,180,72,.6)';ctx.beginPath();ctx.moveTo(mouseX,0);ctx.lineTo(mouseX,H);ctx.moveTo(0,mouseY);ctx.lineTo(W,mouseY);ctx.stroke();}
+
+function spectrum(t){clear();gridFreq();ctx.beginPath();
+  for(let i=0;i<=W;i++){let v=specF(x2f(i),t),y=H-v*H*.86;i?ctx.lineTo(i,y):ctx.moveTo(i,y);}
+  ctx.strokeStyle='#ffb648';ctx.lineWidth=1.5;ctx.stroke();ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.closePath();ctx.fillStyle='rgba(255,31,61,.12)';ctx.fill();
+  drawDemod();drawMarks();drawCursor(t);liveInfo(t);}
+function waterfall(t){ctx.drawImage(cv,0,0,W,H-3,0,3,W,H-3);for(let i=0;i<W;i++)ctx.fillStyle=heat(specF(x2f(i),t)),ctx.fillRect(i,0,1,3);drawDemod();drawMarks();drawCursor(t);liveInfo(t);}
+function spectro(t){ctx.drawImage(cv,3,0,W-3,H,0,0,W-3,H);for(let j=0;j<H;j++){let f=center-span/2+(1-j/H)*span;ctx.fillStyle=heat(specF(f,t));ctx.fillRect(W-3,j,3,1);}drawCursor(t);liveInfo(t);}
+function constel(t){clear();const p=[-.6,-.2,.2,.6];ctx.strokeStyle='rgba(255,92,108,.4)';ctx.beginPath();ctx.moveTo(W/2,0);ctx.lineTo(W/2,H);ctx.moveTo(0,H/2);ctx.lineTo(W,H/2);ctx.stroke();ctx.fillStyle='#ffb648';for(let n=0;n<220;n++){let x=W/2+(p[n%4]+(Math.random()-.5)*.09)*W*.42,y=H/2-(p[(n>>2)%4]+(Math.random()-.5)*.09)*H*.42;ctx.globalAlpha=.5;ctx.fillRect(x,y,2,2);}ctx.globalAlpha=1;rd.textContent='16-QAM';}
+function scope(t){clear();ctx.strokeStyle='rgba(179,0,27,.3)';for(let j=1;j<6;j++){ctx.beginPath();ctx.moveTo(0,H*j/6);ctx.lineTo(W,H*j/6);ctx.stroke();}ctx.beginPath();for(let i=0;i<=W;i++){let m=.6+.4*Math.sin(i/W*2*Math.PI+t),y=H/2-Math.sin(i/W*8*Math.PI+t*4)*m*H*.34;i?ctx.lineTo(i,y):ctx.moveTo(i,y);}ctx.strokeStyle='#ff5c6c';ctx.lineWidth=1.5;ctx.stroke();rd.textContent='10µs/div';}
+function radar(t){ctx.fillStyle='rgba(5,5,6,.1)';ctx.fillRect(0,0,W,H);const cx=W/2,cy=H/2,R=Math.min(W,H)/2-6;ctx.strokeStyle='rgba(179,0,27,.5)';for(let r=1;r<=4;r++){ctx.beginPath();ctx.arc(cx,cy,R*r/4,0,7);ctx.stroke();}const a=(t*1.6)%(2*Math.PI);ctx.strokeStyle='#ff1f3d';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.cos(a)*R,cy+Math.sin(a)*R);ctx.stroke();[[.9,.5],[2.1,.8],[3.6,.35],[5,.7]].forEach(([ba,br])=>{let d=Math.abs(((a-ba+9.4)%6.283)-Math.PI);if(d<.25){ctx.fillStyle='#ffb648';ctx.beginPath();ctx.arc(cx+Math.cos(ba)*R*br,cy+Math.sin(ba)*R*br,4,0,7);ctx.fill();}});rd.textContent='PPI';}
+function sonar(t){ctx.drawImage(cv,0,0,W,H-2,0,2,W,H-2);for(let i=0;i<W;i++){let d=i/W,tg=Math.exp(-((d-(.4+.25*Math.sin(t*.5)))**2)/.0008)+Math.exp(-((d-.75)**2)/.002);ctx.fillStyle=heat(.1+Math.random()*.08+tg*.9);ctx.fillRect(i,0,1,2);}rd.textContent='200 m';}
+function persist(t){ctx.fillStyle='rgba(5,5,6,.12)';ctx.fillRect(0,0,W,H);for(let s=0;s<3;s++){ctx.beginPath();let p0=Math.random()*6;for(let i=0;i<=W;i++){let y=H/2-Math.sin(i/W*4*Math.PI+p0)*(.3+Math.random()*.06)*H;i?ctx.lineTo(i,y):ctx.moveTo(i,y);}ctx.strokeStyle='rgba(255,180,72,.35)';ctx.stroke();}rd.textContent='eye';}
+function vector(t){ctx.fillStyle='rgba(5,5,6,.14)';ctx.fillRect(0,0,W,H);const cx=W/2,cy=H/2,R=Math.min(W,H)/2-8;ctx.strokeStyle='rgba(179,0,27,.5)';ctx.beginPath();ctx.arc(cx,cy,R,0,7);ctx.stroke();ctx.fillStyle='#ffb648';for(let n=0;n<60;n++){let a=t*2+n*.3,r=R*(.55+.3*Math.sin(n*1.7));ctx.fillRect(cx+Math.cos(a)*r,cy+Math.sin(a)*r,2,2);}const a=t*2;ctx.strokeStyle='#ff1f3d';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.cos(a)*R*.9,cy+Math.sin(a)*R*.9);ctx.stroke();rd.textContent='phasor';}
+let pk=.4;function power(t){clear();let f=x2f(hover?mouseX:W/2),lvl=clamp(specF(f,t),0,1);pk=Math.max(pk*.996,lvl);const bw=W-60,bh=34,x0=30,y0=H/2-bh/2;ctx.strokeStyle='#2a2a33';ctx.strokeRect(x0,y0,bw,bh);for(let i=0;i<bw;i+=6)ctx.fillStyle=(i/bw<lvl?heat(.3+i/bw*.7):'#15151b'),ctx.fillRect(x0+i,y0+2,4,bh-4);ctx.fillStyle='#fff';ctx.fillRect(x0+pk*bw-1,y0,2,bh);ctx.fillStyle='#ffb648';ctx.font='20px monospace';ctx.fillText(dbm(lvl).toFixed(1)+' dBm',x0,y0-14);ctx.fillStyle='#8a8a93';ctx.font='10px monospace';ctx.fillText('@ '+fmtF(f)+' MHz · peak '+dbm(pk).toFixed(1),x0,y0+bh+16);liveInfo(t);}
+function rfphysics(){}
+function rfCalc(){const g=id=>parseFloat($(id).value)||0,c=299792458;
+  const fM=g('rf-f'),d=g('rf-d'),Pt=g('rf-pt'),Gt=g('rf-gt'),Gr=g('rf-gr'),L=g('rf-l'),S=g('rf-s'),V=g('rf-v');
+  const f=fM*1e6,lam=c/f,fGHz=fM/1000;
+  const fspl=20*Math.log10(Math.max(d,1e-6))+20*Math.log10(Math.max(fM,1e-6))+32.44;
+  const Pr=Pt+Gt+Gr-fspl-L,margin=Pr-S,fsplMax=Pt+Gt+Gr-L-S;
+  const dmax=Math.pow(10,(fsplMax-20*Math.log10(Math.max(fM,1e-6))-32.44)/20);
+  const r1=17.32*Math.sqrt((d/4)/Math.max(fGHz,1e-6)),dop=V/c*f,mW=Math.pow(10,Pr/10),dBuV=Pr+107;
+  const rows=[['Wavelength λ',lam.toFixed(3)+' m'],['¼-wave whip',(lam/4*1000).toFixed(0)+' mm'],
+    ['Free-space loss',fspl.toFixed(1)+' dB'],['RX power (Friis)',Pr.toFixed(1)+' dBm'],
+    ['Link margin',margin.toFixed(1)+' dB '+(margin>0?'✓':'✗')],['Max range',dmax.toFixed(2)+' km'],
+    ['Fresnel r1 (mid)',r1.toFixed(1)+' m'],['Doppler shift',dop>=1000?(dop/1000).toFixed(2)+' kHz':dop.toFixed(1)+' Hz'],
+    ['RX power',mW<1e-3?(mW*1e6).toExponential(2)+' nW':mW.toFixed(4)+' mW'],['RX (50Ω)',dBuV.toFixed(1)+' dBµV']];
+  $('rfout').innerHTML=rows.map(([k,v])=>'<div class="rfout"><span class="k">'+k+'</span><span class="v">'+v+'</span></div>').join('');}
+let _lastScan=0,det={};
+function monitor(t){spectrum(t);const now=performance.now(),nf=noiseFloor(t);
+  if(now-_lastScan>500){_lastScan=now;SIGS.filter(s=>s.f>=center-span/2&&s.f<=center+span/2).forEach(s=>{
+    let r=dbm(specF(s.f,t));if(r>nf+6){let k=s.f.toFixed(3);if(!det[k])det[k]={f:s.f,mod:s.m,first:Date.now(),count:0};
+      det[k].rssi=r;det[k].last=Date.now();det[k].count++;}});}
+  Object.values(det).forEach(dd=>{let x=f2x(dd.f);if(x<0||x>W)return;ctx.fillStyle='#ff1f3d';ctx.beginPath();ctx.arc(x,20,4,0,7);ctx.fill();
+    ctx.fillStyle='#ff5c6c';ctx.font='10px monospace';ctx.fillText(dd.mod,x+5,16);});
+  let rows=Object.values(det).sort((a,b)=>b.rssi-a.rssi).slice(0,6);
+  $('info').style.display=infoOn?'block':'none';
+  $('info').innerHTML='<b>MONITOR</b> '+Object.keys(det).length+' signals<br>'+
+    rows.map(dd=>'<span class="v">'+fmtF(dd.f)+'</span> '+dd.rssi.toFixed(0)+'dBm ×'+dd.count+' '+dd.mod).join('<br>');
+  rd.textContent='scan '+(center-span/2).toFixed(0)+'–'+(center+span/2).toFixed(0)+' MHz';}
+let _xlast=0;function setX(h){const now=performance.now();if(now-_xlast<600)return;_xlast=now;$('xpanel').innerHTML=h;}
+function kv(k,v){return '<div class="rfout"><span class="k">'+k+'</span><span class="v">'+v+'</span></div>';}
+const HAMBANDS=[['160m','1.8–2.0 MHz','CW/SSB'],['80m','3.5–4.0','CW/SSB'],['40m','7.0–7.3','CW/SSB/FT8'],['20m','14.0–14.35','CW/SSB/FT8'],['2m','144–148','FM/SSB/APRS'],['70cm','420–450','FM/DMR/D-STAR']];
+const CWMSG=['CQ CQ DE W0ABC K','599 TU 73 GL','QTH DENVER CO','FT8: CQ N0XYZ DN70'];
+function ham(){let dec=CWMSG[Math.floor(performance.now()/1500)%CWMSG.length];
+  setX('<h3>⌇ HAM — bands, modes &amp; decode</h3><div class="rfgrid"><div>'+
+    HAMBANDS.map(b=>kv(b[0]+' '+b[1],b[2])).join('')+'</div><div>'+
+    kv('Current mode','FT8 / CW')+kv('Decoder','fldigi · WSJT-X')+kv('TX','licensed only ✓')+
+    '<div class="rfout"><span class="k">decode</span><span class="v">'+dec+'</span></div>'+
+    kv('APRS','144.390 MHz')+kv('Repeater','146.940 −0.6')+'</div></div>'+
+    '<div class="note">Modes: CW · SSB · AM · FM · FT8 · PSK31 · RTTY · APRS · DMR · D-STAR · Fusion. '+
+    'Transmit only on the bands and modes your amateur license authorizes.</div>');}
+function crypto(){let s=nearSig(x2f(hover?mouseX:W/2)).s;
+  let clear=['WBFM','APT','AIS','ADS-B','OOK','ASK'].includes(s.m);
+  let ent=(clear?2.1+Math.random()*1.4:7.62+Math.random()*0.33).toFixed(2);
+  let proto=clear?'analog / clear':(s.m==='FHSS'?'P25 / DMR (digital)':'digital burst');
+  let enc=clear?'none (clear)':(parseFloat(ent)>7.8?'suspected — AES-class (high entropy)':'possible');
+  setX('<h3>🔒 Encryption analysis — classification only</h3><div class="rfgrid"><div>'+
+    kv('Signal',fmtF(s.f)+' MHz '+s.m)+kv('Shannon entropy',ent+' bits/sym')+
+    kv('Randomness χ²',clear?'low (structured)':'high (uniform)')+kv('Protocol',proto)+'</div><div>'+
+    kv('Encryption',enc)+kv('Key length','—')+kv('Framing',clear?'periodic':'pseudo-random')+kv('Decoded?','NO')+'</div></div>'+
+    '<div class="note">Kraken detects and classifies <b>whether</b> a signal is encrypted (entropy, protocol) '+
+    'but does not decrypt third-party or government traffic — that is illegal interception. '+
+    'To secure your own data, use AES-256 (gpg / openssl).</div>');}
+function rxtx(){let fe=(Math.random()*2-1).toFixed(2);
+  setX('<h3>⚙ RX / TX / TCXO analysis</h3><div class="rfgrid"><div>'+
+    kv('RX noise figure','4.8 dB')+kv('RX sensitivity','-112 dBm')+kv('TCXO drift',(0.5+Math.random()*0.6).toFixed(2)+' ppm')+
+    kv('Freq error',fe+' kHz')+kv('Phase noise','-95 dBc/Hz @1k')+'</div><div>'+
+    kv('TX power (own)','+13 dBm')+kv('2nd harmonic','-48 dBc')+kv('3rd harmonic','-55 dBc')+
+    kv('SWR','1.3:1')+kv('Spectral mask','PASS ✓')+'</div></div>'+
+    '<div class="note">TCXO = temperature-compensated crystal oscillator (the frequency reference). '+
+    'TX figures apply to your own licensed transmissions into a matched load/antenna.</div>');}
+let SATS=null;
+function gnss(t){clear();const cx=W/2,cy=H/2,R=Math.min(W,H)/2-16;
+  ctx.strokeStyle='rgba(179,0,27,.4)';for(let e=0;e<=90;e+=30){ctx.beginPath();ctx.arc(cx,cy,R*(1-e/90),0,7);ctx.stroke();}
+  ctx.beginPath();ctx.moveTo(cx-R,cy);ctx.lineTo(cx+R,cy);ctx.moveTo(cx,cy-R);ctx.lineTo(cx,cy+R);ctx.stroke();
+  ctx.fillStyle='#8a8a93';ctx.font='10px monospace';ctx.fillText('N',cx-3,cy-R-3);ctx.fillText('E',cx+R+4,cy+3);ctx.fillText('S',cx-3,cy+R+13);ctx.fillText('W',cx-R-13,cy+3);
+  if(!SATS){SATS=[];const cons=[['G','#ffb648'],['R','#00e5ff'],['E','#7CFC9B'],['C','#ff5c6c']];
+    for(let i=0;i<20;i++){const c=cons[i%4];SATS.push({prn:c[0]+(1+((Math.random()*32)|0)),col:c[1],az:Math.random()*360,el:8+Math.random()*82,snr:(26+Math.random()*20)|0,used:Math.random()<.72,dr:(Math.random()-.5)*4});}}
+  let used=0;SATS.forEach(s=>{s.az=(s.az+s.dr*0.04)%360;const r=R*(1-s.el/90),a=(s.az-90)*Math.PI/180;
+    const x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r;if(s.used)used++;ctx.fillStyle=s.used?s.col:'#555';
+    ctx.beginPath();ctx.arc(x,y,s.used?5:4,0,7);ctx.fill();ctx.fillStyle='#ccc';ctx.font='9px monospace';ctx.fillText(s.prn,x+6,y+3);});
+  const hdop=(0.8+Math.random()*0.5).toFixed(1);
+  rd.innerHTML='3D FIX · '+used+' sats<br>HDOP '+hdop;
+  ctx.fillStyle='#ffb648';ctx.font='11px monospace';
+  ctx.fillText('FIX 3D   sats '+used+'/'+SATS.length+'   HDOP '+hdop+'   GPS·GLO·GAL·BDS',10,H-28);
+  ctx.fillText('40.4215°N  104.9890°W   alt 1512 m   '+new Date().toISOString().slice(11,19)+'Z',10,H-12);}
+const FN={spectrum,waterfall,spectro,constel,scope,radar,sonar,persist,vector,power,rfphysics,monitor,ham,crypto,rxtx,gnss};
+
+function liveInfo(t){const nf=noiseFloor(t);$('noisechip').innerHTML='noise <b>'+nf.toFixed(0)+' dBm</b>';
+  if(!FREQAXIS.has(active)||!infoOn){$('info').style.display='none';return;}$('info').style.display='block';
+  let f=hover?x2f(mouseX):(B?B.f:center);let s=statsAt(f,t);
+  rd.innerHTML=fmtF(f)+' MHz<br>'+s.rssi.toFixed(1)+' dBm · '+s.mod;
+  $('info').innerHTML=
+    '<b>'+(hover?'CURSOR':'MARKER B')+'</b> '+s.mod+'<br>'+
+    '<span class="k">freq </span><span class="v">'+fmtF(f)+' MHz</span><br>'+
+    '<span class="k">RSSI </span><span class="v">'+s.rssi.toFixed(1)+' dBm</span><br>'+
+    '<span class="k">noise</span> '+s.noise.toFixed(1)+' dBm<br>'+
+    '<span class="k">SNR  </span><span class="v">'+s.snr.toFixed(1)+' dB</span><br>'+
+    '<span class="k">−3dB </span>'+(s.bw>0?(s.bw*1000).toFixed(0)+' kHz':'—')+'<br>'+
+    '<span class="k">var  </span>'+s.variance.toFixed(2)+' (σ '+s.sd.toFixed(2)+')<br>'+
+    '<span class="k">ChPwr</span> '+s.chp.toFixed(1)+' dB<br>'+
+    '<span class="k">crest</span> '+s.crest.toFixed(1)+' dB';}
+
+function updDelta(){const dp=$('delta');if(!(A&&B)||!infoOn){dp.style.display='none';return;}dp.style.display='block';
+  let dt=(B.epoch-A.epoch)/1000;
+  dp.innerHTML='<b>Δ A→B</b><br>'+
+    '<span class="k">Δfreq </span><span class="v">'+dHz(B.f-A.f)+'</span><br>'+
+    '<span class="k">ΔRSSI </span><span class="v">'+(B.p-A.p).toFixed(1)+' dB</span><br>'+
+    '<span class="k">Δtime </span>'+dt.toFixed(2)+' s<br>'+
+    '<span class="k">A </span>'+fmtF(A.f)+' · <span class="k">B </span>'+fmtF(B.f);}
+
+// interaction
+cv.addEventListener('mousemove',e=>{const r=cv.getBoundingClientRect();mouseX=e.clientX-r.left;mouseY=e.clientY-r.top;hover=true;
+  if(dragging){movedWhileDown+=Math.abs(mouseX-lastX);if(FREQAXIS.has(active)){center=clamp(center-(mouseX-lastX)/W*span,FMIN+span/2,FMAX-span/2);upd();}lastX=mouseX;}});
+cv.addEventListener('mouseleave',()=>hover=false);
+cv.addEventListener('mousedown',()=>{dragging=true;lastX=mouseX;movedWhileDown=0;});
+window.addEventListener('mouseup',()=>dragging=false);
+cv.addEventListener('click',()=>{if(!FREQAXIS.has(active)||movedWhileDown>4)return;
+  const t=performance.now()/1000,f=x2f(mouseX),s=statsAt(f,t);
+  const m={t:tstr(),epoch:Date.now(),f,p:s.rssi,span,stats:s};
+  A=B;B=m;markers.unshift(m);renderM();updDelta();});
+cv.addEventListener('wheel',e=>{if(!FREQAXIS.has(active))return;e.preventDefault();const fc=x2f(mouseX);zoom(e.deltaY<0?0.8:1.25,fc,mouseX/W);},{passive:false});
+cv.addEventListener('contextmenu',e=>{e.preventDefault();toggleInfo();});
+function zoom(factor,fc,frac){fc=fc??center;frac=frac??0.5;span=clamp(span*factor,MINSPAN,MAXSPAN);center=clamp(fc-(frac-0.5)*span,FMIN+span/2,FMAX-span/2);upd();}
+function resetView(){center=433.92;span=2.0;upd();}
+function upd(){$('c-cf').textContent=fmtF(center);$('c-sp').textContent=span.toFixed(3);$('st-bw').textContent=span<=2.4?'live 2.4 MS/s':'swept '+span.toFixed(1)+' MHz';}
+function tstr(){const d=new Date(),p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());}
+function mtext(m){const s=m.stats;return m.t+'  '+fmtF(m.f)+' MHz  RSSI '+m.p.toFixed(1)+' dBm  SNR '+s.snr.toFixed(1)+' dB  BW '+(s.bw>0?(s.bw*1000).toFixed(0)+'kHz':'—')+'  var '+s.variance.toFixed(2)+'  '+s.mod;}
+function renderM(){const L=$('mlist');if(!markers.length){L.innerHTML='<div class="empty">Click a peak to drop marker A, click again for B.</div>';return;}
+  L.innerHTML='';markers.forEach(m=>{const r=document.createElement('div');r.className='mrow'+(m===A?' A':m===B?' B':'');
+    r.innerHTML='<span class="t">'+m.t+'</span><span class="f">'+fmtF(m.f)+' MHz</span><span class="p">'+m.p.toFixed(1)+' dBm</span><span class="t">SNR '+m.stats.snr.toFixed(0)+'</span><span class="t">'+m.stats.mod+'</span><span class="sp"></span><button class="copy">copy</button>';
+    r.querySelector('.copy').onclick=()=>copyText(mtext(m));L.appendChild(r);});}
+function copyText(txt){navigator.clipboard?.writeText(txt).catch(()=>{});const el=$('rd'),o=el.innerHTML;el.innerHTML='copied ✓';setTimeout(()=>el.innerHTML=o,700);}
+function copyAll(){if(!markers.length)return;let h='# Kraken — signal markers\n';if(A&&B)h+='# Delta A→B: '+dHz(B.f-A.f)+'  ΔRSSI '+(B.p-A.p).toFixed(1)+' dB  Δt '+((B.epoch-A.epoch)/1000).toFixed(2)+' s\n';copyText(h+markers.map(mtext).join('\n'));}
+function clearM(){markers.length=0;A=B=null;renderM();updDelta();}
+function loop(now){(FN[active]||spectrum)((now-t0)/1000);requestAnimationFrame(loop);}
+window.addEventListener('message',e=>{if(!e.data||e.data.type!=='rjxTune')return;let f=+e.data.freq;if(!(f>0))return;
+  center=Math.max(FMIN+0.3,Math.min(6000,f));span=0.5;active='spectrum';$('ttl').textContent='Spectrum';
+  $('desc').textContent='tuned from '+(e.data.label||'device')+' @ '+f+' MHz';
+  const xp=$('xpanel'),rp=$('rfpanel');if(xp)xp.classList.remove('show');if(rp)rp.classList.remove('show');
+  clear();rail();upd();const s=statsAt(center,performance.now()/1000);
+  const m={t:tstr(),epoch:Date.now(),f:center,p:s.rssi,span,stats:s};A=B;B=m;markers.unshift(m);renderM();updDelta();});
+(function(){const ph=document.createElement('option');ph.textContent='— band plan —';ph.value=0;$('bm').appendChild(ph);
+  BANDPLAN.forEach(([g,items])=>{const og=document.createElement('optgroup');og.label=g;
+    items.forEach(([n,v])=>{let o=document.createElement('option');o.textContent=n;o.value=v;og.appendChild(o);});$('bm').appendChild(og);});})();
+rail();$('desc').textContent=D[0][2];resize();upd();requestAnimationFrame(loop);
+</script>
+</body>
+</html>

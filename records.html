@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kraken · Records</title>
+<style>
+  :root{--accent:#ff1f3d;--dim:#b3001b;--accent2:#ff5c6c;--amber:#ffb648;--bg:#0a0a0d;--raised:#111116;--tile:#15151b;--hot:#2a0e14;--fg:#f5f5f7;--muted:#8a8a93;--ok:#2fe24a;--mono:"DejaVu Sans Mono","Courier New",monospace;--wm:.06}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{color:var(--fg);font-family:system-ui,sans-serif;display:flex;justify-content:center;padding:6px}
+  .device{position:relative;width:100%;max-width:980px;height:min(600px,calc(100dvh - 18px));background:rgba(10,10,13,.92);border:2px solid var(--accent);border-radius:12px;overflow:hidden;box-shadow:0 0 40px rgba(255,31,61,.25);display:flex;flex-direction:column}
+  .status{height:38px;background:var(--raised);border-bottom:2px solid var(--accent);display:flex;align-items:center;gap:12px;padding:0 12px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .status b{color:var(--fg)}.pg{margin-left:auto;color:var(--accent);font-weight:800;border:2px solid var(--accent);border-radius:6px;padding:1px 9px}
+  .bar{display:flex;flex-wrap:wrap;gap:6px;padding:8px 10px;border-bottom:1px solid #23232c;background:var(--raised)}
+  .btn{min-height:32px;border-radius:7px;background:var(--tile);border:1px solid #2a2a33;color:var(--fg);font-family:var(--mono);font-size:11.5px;cursor:pointer;padding:0 11px}
+  .btn:hover{border-color:var(--accent2)}.btn.go{border-color:var(--accent);color:var(--accent)}.btn.gold{border-color:var(--amber);color:var(--amber)}
+  .body{flex:1;display:flex;min-height:0}
+  .form{width:290px;border-right:1px solid #23232c;padding:10px;overflow:auto}
+  @media(max-width:720px){.form{width:220px}}
+  label{display:block;font-size:10px;color:var(--muted);font-family:var(--mono);margin:7px 0 2px}
+  input,select,textarea{width:100%;background:#050506;border:1px solid #2a2a33;color:var(--fg);font-family:var(--mono);font-size:12px;border-radius:6px;padding:6px}
+  textarea{resize:vertical;min-height:52px}
+  .row{display:flex;gap:6px}.row>*{flex:1}
+  .list{flex:1;overflow:auto;padding:10px;display:flex;flex-direction:column;gap:8px}
+  .rec{background:var(--raised);border:1px solid #23232c;border-left:3px solid var(--accent);border-radius:8px;padding:9px 10px}
+  .rec.tx{border-left-color:var(--amber)}.rec.rx{border-left-color:var(--ok)}.rec.note{border-left-color:#6a5bff}
+  .rec h4{font-family:var(--mono);font-size:12.5px;color:var(--fg);display:flex;gap:8px;align-items:center}
+  .rec .meta{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin:3px 0}
+  .rec .txt{font-size:12px;color:#d8d8de;white-space:pre-wrap;line-height:1.45;margin-top:4px}
+  .rec img{max-width:160px;max-height:110px;border:1px solid #2a2a33;border-radius:5px;margin-top:6px;margin-right:6px;vertical-align:top}
+  .tag{display:inline-block;font-family:var(--mono);font-size:9px;color:var(--amber);border:1px solid var(--dim);border-radius:9px;padding:0 6px;margin-left:4px}
+  .x{margin-left:auto;color:var(--muted);cursor:pointer;font-size:12px}.x:hover{color:var(--accent)}
+  .empty{color:var(--muted);font-family:var(--mono);font-size:12px;text-align:center;margin-top:40px}
+  .count{font-family:var(--mono);color:var(--amber)}
+</style>
+</head>
+<body>
+<div class="device">
+  <div class="status">📒 <b>RECORDS</b> · field notebook · <span class="count" id="ct">0</span> entries
+    <span class="pg">7 / REC</span></div>
+  <div class="bar">
+    <input id="q" placeholder="filter…" style="max-width:150px;min-height:30px" oninput="render()">
+    <select id="fType" style="max-width:120px;min-height:30px" onchange="render()">
+      <option value="">all types</option><option>OBS</option><option>RX</option><option>TX</option><option>NOTE</option></select>
+    <span style="flex:1"></span>
+    <button class="btn gold" onclick="downloadNotebook()">⬇ Notebook (.html)</button>
+    <button class="btn" onclick="exportJSON()">JSON</button>
+    <button class="btn" onclick="exportMD()">Markdown</button>
+    <button class="btn" onclick="document.getElementById('imp').click()">Import</button>
+    <input type="file" id="imp" accept=".json" style="display:none" onchange="importJSON(event)">
+    <button class="btn" onclick="clearAll()">Clear</button>
+  </div>
+  <div class="body">
+    <div class="form">
+      <label>Type</label>
+      <select id="type"><option>OBS</option><option>RX</option><option>TX</option><option>NOTE</option></select>
+      <label>Title</label><input id="title" placeholder="short title">
+      <div class="row">
+        <div><label>Band</label><input id="band" placeholder="e.g. 70cm"></div>
+        <div><label>Freq (MHz)</label><input id="freq" placeholder="446.000"></div>
+      </div>
+      <div class="row">
+        <div><label>Mode</label><input id="mode" placeholder="FM / FT8 …"></div>
+        <div><label>RSSI</label><input id="rssi" placeholder="dBm"></div>
+      </div>
+      <label>GPS (lat,lon)</label>
+      <div class="row"><input id="gps" placeholder="auto or manual"><button class="btn" style="flex:0 0 auto" onclick="getGPS()">📍</button></div>
+      <label>Notes</label><textarea id="note" placeholder="observations, context…"></textarea>
+      <label>Tags (comma)</label><input id="tags" placeholder="survey, downtown">
+      <label>Attach image / graph snapshot</label>
+      <input type="file" id="img" accept="image/*" multiple onchange="stageImg(event)">
+      <div id="thumbs" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:5px"></div>
+      <button class="btn go" style="width:100%;min-height:38px;margin-top:10px" onclick="addRec()">＋ Add record</button>
+      <div style="font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:8px;line-height:1.5">
+        TX/RX actions on other pages auto-log here. Notebook export bundles every entry — text, images and graph
+        snapshots — into one self-contained file.</div>
+    </div>
+    <div class="list" id="list"></div>
+  </div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+let recs=load(),staged=[];
+function load(){try{return JSON.parse(localStorage.getItem('krakenRecords')||'[]')}catch(e){return[]}}
+function save(){try{localStorage.setItem('krakenRecords',JSON.stringify(recs))}catch(e){}}
+function stageImg(e){[...e.target.files].forEach(f=>{const r=new FileReader();r.onload=()=>{staged.push(r.result);drawThumbs();};r.readAsDataURL(f);});e.target.value='';}
+function drawThumbs(){$('thumbs').innerHTML=staged.map((s,i)=>'<img src="'+s+'" style="width:40px;height:40px;object-fit:cover;border:1px solid #2a2a33;border-radius:4px;cursor:pointer" title="remove" onclick="staged.splice('+i+',1);drawThumbs()">').join('');}
+function getGPS(){if(!navigator.geolocation){$('gps').value='no geolocation';return;}
+  navigator.geolocation.getCurrentPosition(p=>$('gps').value=p.coords.latitude.toFixed(5)+','+p.coords.longitude.toFixed(5),()=>$('gps').value='denied');}
+function addRec(){
+  const r={t:Date.now(),type:$('type').value,title:$('title').value||'(untitled)',band:$('band').value,freq:$('freq').value,
+    mode:$('mode').value,rssi:$('rssi').value,gps:$('gps').value,note:$('note').value,
+    tags:$('tags').value.split(',').map(s=>s.trim()).filter(Boolean),imgs:staged.slice()};
+  recs.push(r);save();staged=[];drawThumbs();
+  ['title','band','freq','mode','rssi','note','tags'].forEach(id=>$(id).value='');
+  render();
+}
+function delRec(t){recs=recs.filter(r=>r.t!==t);save();render();}
+function clearAll(){if(confirm('Delete all '+recs.length+' records?')){recs=[];save();render();}}
+function fmt(t){return new Date(t).toLocaleString();}
+// normalize records coming from TX/Signal pages (they use slightly different keys)
+function norm(r){return{t:r.t||Date.now(),type:r.type||'OBS',title:r.title||r.note||(r.type==='TX'?'TX '+(r.mode||''):'Record'),
+  band:r.band||'',freq:r.freq||'',mode:r.mode||'',rssi:r.rssi||r.power||'',gps:r.gps||'',note:r.note||'',
+  tags:r.tags||(r.call?['call:'+r.call]:[]),imgs:r.imgs||(r.img?[r.img]:[])};}
+function render(){
+  const q=$('q').value.toLowerCase(),ft=$('fType').value;
+  const rows=recs.map(norm).filter(r=>(!ft||r.type===ft)&&(!q||JSON.stringify(r).toLowerCase().includes(q)))
+    .sort((a,b)=>b.t-a.t);
+  $('ct').textContent=recs.length;
+  $('list').innerHTML=rows.length?rows.map(r=>{
+    const imgs=(r.imgs||[]).map(s=>'<img src="'+s+'">').join('');
+    const meta=[r.band,r.freq&&r.freq+' MHz',r.mode,r.rssi&&r.rssi+' dBm',r.gps].filter(Boolean).join(' · ');
+    const tags=(r.tags||[]).map(t=>'<span class="tag">'+t+'</span>').join('');
+    return '<div class="rec '+r.type.toLowerCase()+'"><h4>['+r.type+'] '+esc(r.title)+tags+
+      '<span class="x" onclick="delRec('+r.t+')">✕</span></h4>'+
+      '<div class="meta">'+fmt(r.t)+(meta?'  ·  '+esc(meta):'')+'</div>'+
+      (r.note?'<div class="txt">'+esc(r.note)+'</div>':'')+imgs+'</div>';
+  }).join(''):'<div class="empty">No records yet. Add one, or run TX/RX on other pages — they log here automatically.</div>';
+}
+function esc(s){return(s+'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+// ---------- EXPORTS ----------
+function dl(name,data,type){const b=new Blob([data],{type});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),2000);}
+function stamp(){return new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');}
+function exportJSON(){dl('kraken-records-'+stamp()+'.json',JSON.stringify(recs,null,2),'application/json');}
+function exportMD(){
+  let m='# Kraken field records\n\n_'+recs.length+' entries · exported '+new Date().toLocaleString()+'_\n\n';
+  recs.map(norm).sort((a,b)=>b.t-a.t).forEach(r=>{
+    m+='## ['+r.type+'] '+r.title+'\n\n- **When:** '+fmt(r.t)+'\n';
+    if(r.band||r.freq)m+='- **Band/Freq:** '+[r.band,r.freq&&r.freq+' MHz'].filter(Boolean).join(' / ')+'\n';
+    if(r.mode)m+='- **Mode:** '+r.mode+'\n';if(r.rssi)m+='- **Level:** '+r.rssi+' dBm\n';
+    if(r.gps)m+='- **GPS:** '+r.gps+'\n';if(r.tags&&r.tags.length)m+='- **Tags:** '+r.tags.join(', ')+'\n';
+    if(r.note)m+='\n'+r.note+'\n';
+    (r.imgs||[]).forEach((s,i)=>m+='\n![image '+(i+1)+']('+s+')\n');
+    m+='\n---\n\n';
+  });
+  dl('kraken-records-'+stamp()+'.md',m,'text/markdown');
+}
+function downloadNotebook(){
+  // ONE self-contained .html notebook: text + images + graph snapshots inline (base64), opens in any browser
+  const rows=recs.map(norm).sort((a,b)=>b.t-a.t).map(r=>{
+    const imgs=(r.imgs||[]).map(s=>'<img src="'+s+'">').join('');
+    const meta=[r.band,r.freq&&r.freq+' MHz',r.mode,r.rssi&&r.rssi+' dBm',r.gps].filter(Boolean).join(' · ');
+    const tags=(r.tags||[]).map(t=>'<span class="tag">'+t+'</span>').join(' ');
+    return '<article class="r '+r.type.toLowerCase()+'"><h2>['+r.type+'] '+esc(r.title)+' '+tags+'</h2>'+
+      '<div class="m">'+fmt(r.t)+(meta?' · '+esc(meta):'')+'</div>'+
+      (r.note?'<p>'+esc(r.note).replace(/\n/g,'<br>')+'</p>':'')+(imgs?'<div class="imgs">'+imgs+'</div>':'')+'</article>';
+  }).join('\n');
+  const doc='<!DOCTYPE html><html><head><meta charset="utf-8"><title>Kraken Records '+stamp()+'</title><style>'+
+    'body{background:#0a0a0d;color:#f5f5f7;font-family:system-ui,sans-serif;max-width:860px;margin:0 auto;padding:28px}'+
+    'h1{color:#ff1f3d;font-family:monospace}.sub{color:#8a8a93;font-family:monospace;margin-bottom:22px}'+
+    '.r{background:#111116;border:1px solid #23232c;border-left:4px solid #ff1f3d;border-radius:10px;padding:14px 16px;margin:14px 0}'+
+    '.r.tx{border-left-color:#ffb648}.r.rx{border-left-color:#2fe24a}.r.note{border-left-color:#6a5bff}'+
+    'h2{font-family:monospace;font-size:16px;margin-bottom:4px}.m{color:#8a8a93;font-family:monospace;font-size:12px;margin-bottom:6px}'+
+    'p{line-height:1.6;color:#d8d8de}.imgs img{max-width:100%;border:1px solid #2a2a33;border-radius:6px;margin:8px 8px 0 0}'+
+    '.tag{font-family:monospace;font-size:10px;color:#ffb648;border:1px solid #b3001b;border-radius:10px;padding:1px 7px}'+
+    '</style></head><body><h1>◈ KRAKEN — Field Records</h1><div class="sub">'+recs.length+
+    ' entries · exported '+new Date().toLocaleString()+' · Strikeback Tech</div>'+rows+'</body></html>';
+  dl('kraken-notebook-'+stamp()+'.html',doc,'text/html');
+}
+function importJSON(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{const a=JSON.parse(r.result);if(Array.isArray(a)){recs=recs.concat(a);save();render();}}catch(x){alert('Bad JSON');}};r.readAsText(f);e.target.value='';}
+// live capture from TX / Signal pages
+window.addEventListener('message',ev=>{const d=ev.data||{};const r=document.documentElement.style;
+  if(d.type==='rjxTheme'){r.setProperty('--accent',d.a);r.setProperty('--accent2',d.b);r.setProperty('--dim',d.c);}
+  if(d.type==='rjxOpt'&&d.wm!=null){r.setProperty('--wm',d.wm);}
+  if(d.type==='rjxRecord'&&d.rec){recs=load();recs.push(d.rec);save();render();}});
+window.addEventListener('storage',e=>{if(e.key==='krakenRecords'){recs=load();render();}});
+render();
+</script>
+</body>
+</html>

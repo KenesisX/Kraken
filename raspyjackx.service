@@ -1,0 +1,17 @@
+# Reference copy — install.sh generates the real one with paths filled in.
+[Unit]
+Description=RaspyJack-X touchscreen launcher
+After=multi-user.target
+
+[Service]
+User=pi
+Environment=DISPLAY=:0
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+Environment=RJX_CONFIG=/home/pi/raspyjackx/raspyjackx/tools.yaml
+WorkingDirectory=/home/pi/raspyjackx
+ExecStart=/usr/bin/python3 -m raspyjackx.main
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=graphical.target

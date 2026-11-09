@@ -1,0 +1,41 @@
+<svg viewBox="0 0 520 300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="halo" cx="48%" cy="58%" r="55%">
+      <stop offset="0" stop-color="#ff1f3d" stop-opacity="0.35"/>
+      <stop offset="0.6" stop-color="#b3001b" stop-opacity="0.15"/>
+      <stop offset="1" stop-color="#b3001b" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="spark" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#ffe9a6" stop-opacity="0.95"/>
+      <stop offset="0.5" stop-color="#ff6a1f" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#ff1f3d" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect x="0" y="0" width="520" height="300" fill="#0a0a0d"/>
+  <g transform="translate(160,8) scale(1.0)">
+    <circle cx="96" cy="118" r="98" fill="url(#halo)"/>
+    <circle cx="94" cy="132" r="52" fill="none" stroke="#ff1f3d" stroke-width="13" opacity="0.30"/>
+    <circle cx="94" cy="132" r="52" fill="#140406"/>
+    <circle cx="94" cy="132" r="52" fill="none" stroke="#ff3b52" stroke-width="4.5"/>
+    <circle cx="94" cy="132" r="52" fill="none" stroke="#ffd0d6" stroke-width="1.2" opacity="0.5"/>
+    <ellipse cx="70" cy="150" rx="10" ry="6" fill="#ff5c6c" opacity="0.45" transform="rotate(-35 70 150)"/>
+    <g stroke-linecap="round">
+      <line x1="63" y1="101" x2="125" y2="163" stroke="#ff1f3d" stroke-width="11" opacity="0.30"/>
+      <line x1="125" y1="101" x2="63" y2="163" stroke="#ff1f3d" stroke-width="11" opacity="0.30"/>
+      <line x1="63" y1="101" x2="125" y2="163" stroke="#ff3b52" stroke-width="5.5"/>
+      <line x1="125" y1="101" x2="63" y2="163" stroke="#ff3b52" stroke-width="5.5"/>
+    </g>
+    <path d="M78 86 L110 86 L104 62 L84 62 Z" fill="#140406" stroke="#ff3b52" stroke-width="3.5" stroke-linejoin="round"/>
+    <path d="M82 75 L106 75" stroke="#ff5c6c" stroke-width="2.5" stroke-linecap="round"/>
+    <ellipse cx="94" cy="62" rx="10" ry="3.2" fill="#140406" stroke="#ff3b52" stroke-width="2.5"/>
+    <path d="M94 60 C 102 40 120 50 138 26" fill="none" stroke="#ff6a1f" stroke-width="3.5" stroke-linecap="round"/>
+    <circle cx="140" cy="22" r="22" fill="url(#spark)"/>
+    <path d="M140 0 L148 16 L164 22 L148 28 L140 44 L132 28 L116 22 L132 16 Z" fill="#ff1f3d" opacity="0.75"/>
+    <path d="M140 7 L146 18 L156 22 L146 26 L140 37 L134 26 L124 22 L134 18 Z" fill="#ffb648"/>
+    <circle cx="140" cy="22" r="3.6" fill="#fff6e6"/>
+  </g>
+  <text x="260" y="250" text-anchor="middle" font-family="DejaVu Sans Mono, monospace"
+        font-size="26" font-weight="bold" letter-spacing="6" fill="#8a8a93">STRIKEBACK</text>
+  <text x="260" y="286" text-anchor="middle" font-family="DejaVu Sans Mono, monospace"
+        font-size="34" font-weight="bold" letter-spacing="3" fill="#ff1f3d">RASPYJACK-X</text>
+</svg>

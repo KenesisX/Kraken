@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kraken · Devices</title>
+<style>
+  :root{--accent:#ff1f3d;--dim:#b3001b;--accent2:#ff5c6c;--amber:#ffb648;--bg:#0a0a0d;--raised:#111116;--tile:#15151b;--hot:#2a0e14;--fg:#f5f5f7;--muted:#8a8a93;--ok:#2fe24a;--mono:"DejaVu Sans Mono","Courier New",monospace;--wm:.06}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{color:var(--fg);font-family:system-ui,sans-serif;display:flex;justify-content:center;padding:6px}
+  .device{position:relative;width:100%;max-width:980px;height:min(600px,calc(100dvh - 18px));background:rgba(10,10,13,.92);border:2px solid var(--accent);border-radius:12px;overflow:hidden;box-shadow:0 0 40px rgba(255,31,61,.25);display:flex;flex-direction:column}
+  .status{height:38px;background:var(--raised);border-bottom:2px solid var(--accent);display:flex;align-items:center;gap:12px;padding:0 12px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .status b{color:var(--fg)}.pg{margin-left:auto;color:var(--accent);font-weight:800;border:2px solid var(--accent);border-radius:6px;padding:1px 9px}
+  .body{flex:1;overflow:auto;padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:720px){.body{grid-template-columns:1fr}}
+  .panel{background:var(--raised);border:1px solid #23232c;border-radius:10px;padding:12px}
+  .panel.span{grid-column:1/-1}
+  h3{font-family:var(--mono);color:var(--accent);font-size:13px;margin-bottom:9px;border-bottom:1px solid var(--dim);padding-bottom:5px}
+  label{display:block;font-size:10px;color:var(--muted);font-family:var(--mono);margin:7px 0 2px}
+  input,select{width:100%;background:#050506;border:1px solid #2a2a33;color:var(--fg);font-family:var(--mono);font-size:12px;border-radius:6px;padding:6px}
+  .row{display:flex;gap:6px}.row>*{flex:1}
+  .btn{min-height:34px;border-radius:7px;background:var(--tile);border:1px solid #2a2a33;color:var(--fg);font-family:var(--mono);font-size:12px;cursor:pointer;padding:0 12px}
+  .btn:hover{border-color:var(--accent2)}.btn.go{border-color:var(--accent);color:var(--accent)}.btn.ok{border-color:var(--ok);color:var(--ok)}
+  .mon{background:#050506;border:1px solid var(--dim);border-radius:8px;font-family:var(--mono);font-size:11.5px;color:#8f8;padding:8px;height:150px;overflow:auto;white-space:pre-wrap;line-height:1.4}
+  .cmd{background:#050506;border:1px solid #2a2a33;border-radius:7px;font-family:var(--mono);font-size:11px;color:var(--amber);padding:8px;white-space:pre-wrap;line-height:1.5;margin-top:6px;user-select:all}
+  .dev{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11.5px;padding:6px 8px;border:1px solid #23232c;border-radius:7px;background:#0d0d12;margin-top:5px}
+  .dot{width:9px;height:9px;border-radius:50%;background:#444}.dot.on{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+  .x{margin-left:auto;color:var(--muted);cursor:pointer}.x:hover{color:var(--accent)}
+  .note{font-size:10.5px;color:var(--muted);line-height:1.5;margin-top:7px}
+  .scope{background:#06210f;border:1px solid var(--ok);border-radius:8px;padding:8px 10px;font-size:11px;color:#bdf5c9;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="device">
+  <div class="status">🔌 <b>DEVICES</b> · flash &amp; manage your own hardware <span class="pg">9 / DEV</span></div>
+  <div class="body">
+
+    <div class="panel span scope">
+      <b>Scope:</b> this page manages hardware <b>you own and control</b> — flash firmware, open a serial console, and move
+      files to your own ESP32/Pico/Pi/CC1101 boards over USB, SSH or SFTP. It does not log keystrokes, capture another
+      machine's traffic, or run code on devices you don't control.
+    </div>
+
+    <!-- SERIAL CONSOLE (Web Serial) -->
+    <div class="panel">
+      <h3>🖥 Serial console (USB)</h3>
+      <div class="row">
+        <select id="baud"><option>115200</option><option>9600</option><option>921600</option><option>460800</option><option>57600</option></select>
+        <button class="btn go" id="conn" onclick="serialConnect()">Connect</button>
+      </div>
+      <div class="mon" id="mon">Web Serial console. Click Connect and pick your board (Chrome/Edge desktop).\n</div>
+      <div class="row" style="margin-top:6px">
+        <input id="sline" placeholder="type a command → Enter" onkeydown="if(event.key==='Enter')serialSend()">
+        <button class="btn" style="flex:0 0 auto" onclick="serialSend()">Send</button>
+      </div>
+      <div class="note">Talks to AT-firmware ESP-01S, MicroPython, Marauder CLI, CC1101 bridge sketches, CH340/CP210x boards.
+        Needs a Chromium browser; the native Pi app uses pyserial.</div>
+    </div>
+
+    <!-- FLASHER -->
+    <div class="panel">
+      <h3>⚡ Firmware flasher</h3>
+      <label>Board</label>
+      <select id="board" onchange="buildCmd()">
+        <option value="esp32">ESP32 (esptool)</option><option value="esp8266">ESP8266 / ESP-01S (esptool)</option>
+        <option value="pico">RP2040 / Pico (picotool/UF2)</option><option value="avr">AVR / CC1101 shield (avrdude)</option>
+        <option value="dfu">STM32 / DFU (dfu-util)</option>
+      </select>
+      <div class="row">
+        <div><label>Port</label><input id="port" value="/dev/ttyUSB0" oninput="buildCmd()"></div>
+        <div><label>Flash baud</label><input id="fbaud" value="460800" oninput="buildCmd()"></div>
+      </div>
+      <label>Firmware file (.bin / .uf2 / .hex)</label>
+      <input type="file" id="fw" accept=".bin,.uf2,.hex,.elf" onchange="buildCmd()">
+      <div class="cmd" id="cmd"></div>
+      <div class="row" style="margin-top:6px">
+        <button class="btn" onclick="copyCmd()">Copy command</button>
+        <button class="btn ok" onclick="flashNote()">Flash</button>
+      </div>
+      <div class="note">Web builds the exact flasher command; the native app runs it (<code>esptool.py</code>,
+        <code>picotool</code>, <code>avrdude</code>, <code>dfu-util</code>). Chrome can also flash ESP via WebSerial + esptool-js.</div>
+    </div>
+
+    <!-- FLEET / FILE TRANSFER -->
+    <div class="panel span">
+      <h3>📁 My device fleet · file transfer (SSH / SFTP)</h3>
+      <div class="row">
+        <input id="dname" placeholder="name (e.g. shop-esp32)">
+        <select id="dtype"><option>ESP32</option><option>ESP8266</option><option>Pico</option><option>Raspberry Pi</option><option>CC1101 bridge</option><option>Android (ADB)</option></select>
+        <input id="dhost" placeholder="host/IP or serial path">
+        <input id="duser" placeholder="user" style="max-width:110px">
+        <button class="btn go" style="flex:0 0 auto" onclick="addDev()">+ Add</button>
+      </div>
+      <div id="fleet"></div>
+      <div class="cmd" id="xfer" style="display:none"></div>
+      <div class="note">Transfer presets build real <code>scp</code>/<code>sftp</code>/<code>adb push/pull</code> commands for the
+        selected device. Scripts run on a device <b>only via its own shell</b> (ssh you authenticate to) — this is remote
+        admin of your own gear, not remote execution against third-party targets.</div>
+    </div>
+
+  </div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+let port=null,reader=null,writer=null;
+function log(s){const m=$('mon');m.textContent+=s;m.scrollTop=m.scrollHeight;}
+async function serialConnect(){
+  if(!('serial'in navigator)){log('\n[!] Web Serial unavailable in this browser. Use Chrome/Edge desktop, or the native app.\n');return;}
+  try{port=await navigator.serial.requestPort();await port.open({baudRate:+$('baud').value});
+    writer=port.writable.getWriter();reader=port.readable.getReader();
+    $('conn').textContent='Disconnect';$('conn').onclick=serialDisconnect;log('\n[+] Connected @ '+$('baud').value+' baud\n');
+    readLoop();
+  }catch(e){log('\n[!] '+e.message+'\n');}
+}
+async function readLoop(){const dec=new TextDecoder();try{while(true){const{value,done}=await reader.read();if(done)break;if(value)log(dec.decode(value));}}catch(e){}}
+async function serialDisconnect(){try{if(reader){await reader.cancel();reader.releaseLock();}if(writer){writer.releaseLock();}if(port)await port.close();}catch(e){}
+  port=null;$('conn').textContent='Connect';$('conn').onclick=serialConnect;log('\n[-] Disconnected\n');}
+async function serialSend(){const v=$('sline').value;if(!writer){log('\n[!] Not connected.\n');return;}
+  try{await writer.write(new TextEncoder().encode(v+'\r\n'));log('> '+v+'\n');$('sline').value='';}catch(e){log('\n[!] '+e.message+'\n');}}
+// ---- flasher command builder ----
+function buildCmd(){const b=$('board').value,p=$('port').value,fb=$('fbaud').value,f=$('fw').files[0];const fn=f?f.name:'firmware.bin';
+  let c='';
+  if(b==='esp32')c='esptool.py --chip esp32 --port '+p+' --baud '+fb+' write_flash -z 0x1000 '+fn;
+  else if(b==='esp8266')c='esptool.py --chip esp8266 --port '+p+' --baud '+fb+' write_flash 0x0 '+fn;
+  else if(b==='pico')c='# hold BOOTSEL, then copy UF2:\ncp '+(f?f.name:'firmware.uf2')+' /media/*/RPI-RP2/   # or: picotool load -x '+(f?f.name:'firmware.uf2');
+  else if(b==='avr')c='avrdude -p m328p -c arduino -P '+p+' -b '+fb+' -U flash:w:'+(f?f.name:'firmware.hex')+':i';
+  else c='dfu-util -a 0 -s 0x08000000:leave -D '+(f?f.name:'firmware.bin');
+  $('cmd').textContent=c;
+}
+function copyCmd(){navigator.clipboard&&navigator.clipboard.writeText($('cmd').textContent);const c=$('cmd');c.style.borderColor='var(--ok)';setTimeout(()=>c.style.borderColor='#2a2a33',600);}
+function flashNote(){log('\n[flash] '+$('cmd').textContent.split('\n').pop()+'\n[flash] Run this in the native app / terminal — browsers can flash ESP via WebSerial (esptool-js) but not AVR/DFU.\n');}
+// ---- fleet ----
+let devs=load();function load(){try{return JSON.parse(localStorage.getItem('krakenDevices')||'[]')}catch(e){return[]}}
+function save(){try{localStorage.setItem('krakenDevices',JSON.stringify(devs))}catch(e){}}
+function addDev(){const d={name:$('dname').value||'device',type:$('dtype').value,host:$('dhost').value,user:$('duser').value};
+  if(!d.host){return;}devs.push(d);save();$('dname').value='';$('dhost').value='';$('duser').value='';render();}
+function delDev(i){devs.splice(i,1);save();render();}
+function xfer(i,dir){const d=devs[i];let c='';
+  if(d.type==='Android (ADB)')c=dir==='push'?('adb -s '+(d.host||'<serial>')+' push ./localfile /sdcard/'):('adb -s '+(d.host||'<serial>')+' pull /sdcard/remotefile ./');
+  else if(d.type==='Raspberry Pi'||d.host.includes('.'))c=dir==='push'?('scp ./localfile '+(d.user||'user')+'@'+d.host+':~/'):('scp '+(d.user||'user')+'@'+d.host+':~/remotefile ./');
+  else c=dir==='push'?('ampy -p '+d.host+' put localfile.py   # or rshell cp localfile.py /pyboard/'):('ampy -p '+d.host+' get remotefile.py');
+  const x=$('xfer');x.style.display='block';x.textContent=c;}
+function render(){$('fleet').innerHTML=devs.map((d,i)=>'<div class="dev"><span class="dot on"></span><b>'+esc(d.name)+'</b> · '+esc(d.type)+' · '+esc(d.host||'')+(d.user?' ('+esc(d.user)+')':'')+
+  ' <button class="btn" style="min-height:24px;font-size:10px;margin-left:8px" onclick="xfer('+i+',\'push\')">push</button>'+
+  '<button class="btn" style="min-height:24px;font-size:10px" onclick="xfer('+i+',\'pull\')">pull</button>'+
+  '<span class="x" onclick="delDev('+i+')">✕</span></div>').join('')||'<div class="note">No devices yet. Add your own board or Pi above.</div>';}
+function esc(s){return(s+'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+window.addEventListener('message',ev=>{const d=ev.data||{};const r=document.documentElement.style;
+  if(d.type==='rjxTheme'){r.setProperty('--accent',d.a);r.setProperty('--accent2',d.b);r.setProperty('--dim',d.c);}
+  if(d.type==='rjxOpt'&&d.wm!=null){r.setProperty('--wm',d.wm);}});
+buildCmd();render();
+</script>
+</body>
+</html>

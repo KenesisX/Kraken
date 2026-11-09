@@ -1,0 +1,595 @@
+# RaspyJack-X — KITSUNE build menu
+# ===========================================================================
+# HARDWARE: Raspberry Pi 5  +  Alfa AWUS036AC (RTL8812AU)  +  RTL-SDR Blog V4
+#
+# AUTHORIZED TESTING ONLY. `scope:` blocks commands aimed outside your allowed
+# networks. Every command + output is logged under log_dir/<engagement>/.
+#
+# The menu IS this file. {placeholders} expand from `variables:`.
+#   confirm: true  -> yes/no pad first (anything that changes state on the wire)
+#   shell: true    -> run via `bash -lc` so pipes/redirects/$() work
+# Tools reference standard binaries from Kali/Parrot/Athena/BlackArch. Install
+# them with ./install_tools.sh . Buttons for tools you don't have just print the
+# missing-binary error — nothing breaks.
+# ===========================================================================
+
+title: "Strikeback X"
+require_consent: true
+
+engagement: "lab"
+log_dir: "~/loot"
+scope:
+  - "192.168.0.0/16"
+  - "10.0.0.0/8"
+
+companion:
+  enable: true
+  bind: "0.0.0.0"
+  port: 8088
+  token: "change-me-to-something-long"
+
+notify:
+  ntfy_server: "https://ntfy.sh"
+  topic: ""
+  public_url: ""
+  priority: "default"
+
+variables:
+  iface: "eth0"
+  wlan: "wlan1"
+  mon: "wlan1"
+  gateway: "192.168.1.1"
+  subnet: "192.168.1.0/24"
+  target: "192.168.1.1"
+  bssid: "AA:BB:CC:DD:EE:FF"
+  essid: "TARGET-WIFI"
+  channel: "6"
+  url: "http://192.168.1.10"
+  domain: "example.local"
+  user: "administrator"
+  wordlist: "/usr/share/wordlists/rockyou.txt"
+  dirlist: "/usr/share/wordlists/dirb/common.txt"
+  userlist: "/usr/share/seclists/Usernames/top-usernames-shortlist.txt"
+  image: "nginx:latest"
+  apk: "/home/pi/loot/lab/app.apk"
+  package: "com.example.app"
+  device: ""
+  sync_dest: "user@host:/srv/loot/"
+  outdir: "/home/pi/loot/lab"
+
+categories:
+  - name: "Recon"
+    icon: "ᚱ"
+    tools:
+      - label: "Live host sweep"
+        cmd: "nmap -sn {subnet} -oN {outdir}/hosts.txt"
+      - label: "ARP scan (layer 2)"
+        cmd: "sudo arp-scan --interface={iface} --localnet"
+        confirm: true
+      - label: "netdiscover (passive)"
+        cmd: "sudo timeout 30 netdiscover -i {iface} -P"
+        shell: true
+      - label: "WHOIS domain"
+        cmd: "whois {domain}"
+      - label: "DNS recon"
+        cmd: "dnsrecon -d {domain}"
+      - label: "DNS brute (dnsenum)"
+        cmd: "dnsenum {domain}"
+      - label: "theHarvester (OSINT)"
+        cmd: "theHarvester -d {domain} -b bing,crtsh,duckduckgo"
+      - label: "Subfinder"
+        cmd: "subfinder -d {domain} -silent"
+      - label: "amass passive"
+        cmd: "amass enum -passive -d {domain}"
+      - label: "httpx probe"
+        cmd: "subfinder -d {domain} -silent | httpx -silent"
+        shell: true
+
+  - name: "Scan"
+    icon: "✴"
+    tools:
+      - label: "Fast top-ports"
+        cmd: "nmap -T4 -F {target} -oN {outdir}/fast.txt"
+      - label: "Full TCP + scripts"
+        cmd: "nmap -p- -sV -sC {target} -oN {outdir}/full.txt"
+        confirm: true
+      - label: "UDP top-50"
+        cmd: "sudo nmap -sU --top-ports 50 {target} -oN {outdir}/udp.txt"
+        confirm: true
+      - label: "Vuln scripts"
+        cmd: "nmap --script vuln {target} -oN {outdir}/vuln.txt"
+        confirm: true
+      - label: "OS + traceroute"
+        cmd: "sudo nmap -O --traceroute {target}"
+        confirm: true
+      - label: "masscan subnet (1k)"
+        cmd: "sudo masscan {subnet} -p1-1000 --rate 1000"
+        confirm: true
+      - label: "naabu fast ports"
+        cmd: "naabu -host {target} -silent"
+
+  - name: "Enum"
+    icon: "⍟"
+    tools:
+      - label: "SMB enum (enum4linux-ng)"
+        cmd: "enum4linux-ng {target}"
+      - label: "SMB shares (smbclient)"
+        cmd: "smbclient -L //{target}/ -N"
+      - label: "NFS exports"
+        cmd: "showmount -e {target}"
+      - label: "RPC info"
+        cmd: "rpcclient -U '' -N {target} -c 'srvinfo;enumdomusers'"
+        shell: true
+      - label: "SNMP walk (public)"
+        cmd: "snmpwalk -v2c -c public {target}"
+        confirm: true
+      - label: "NetBIOS scan"
+        cmd: "sudo nbtscan {subnet}"
+      - label: "LDAP base"
+        cmd: "ldapsearch -x -H ldap://{target} -s base namingcontexts"
+
+  - name: "Web"
+    icon: "∞"
+    tools:
+      - label: "whatweb fingerprint"
+        cmd: "whatweb {url}"
+      - label: "Headers + TLS"
+        cmd: "curl -skI {url}; echo | openssl s_client -connect {domain}:443 2>/dev/null | openssl x509 -noout -subject -dates"
+        shell: true
+      - label: "nikto scan"
+        cmd: "nikto -h {url}"
+        confirm: true
+      - label: "Dir brute (gobuster)"
+        cmd: "gobuster dir -u {url} -w {dirlist} -q"
+        confirm: true
+      - label: "Fuzz (ffuf)"
+        cmd: "ffuf -u {url}/FUZZ -w {dirlist} -s"
+        confirm: true
+      - label: "feroxbuster"
+        cmd: "feroxbuster -u {url} -w {dirlist} -q"
+        confirm: true
+      - label: "nuclei templates"
+        cmd: "nuclei -u {url} -silent"
+        confirm: true
+      - label: "WordPress (wpscan)"
+        cmd: "wpscan --url {url} --no-banner"
+        confirm: true
+      - label: "sqlmap (URL)"
+        cmd: "sqlmap -u {url} --batch --crawl=1"
+        confirm: true
+      - label: "XSS (dalfox)"
+        cmd: "dalfox url {url}"
+        confirm: true
+      - label: "OWASP ZAP (GUI)"
+        cmd: "zaproxy"
+      - label: "Fuzz params (wfuzz)"
+        cmd: "wfuzz -c -z file,{dirlist} --hc 404 {url}/FUZZ"
+        confirm: true
+      - label: "Cmd injection (commix)"
+        cmd: "commix --url {url} --batch"
+        confirm: true
+
+  - name: "Wireless"
+    icon: "✶"
+    tools:
+      - label: "Scan APs (AWUS036AC)"
+        cmd: "nmcli -f SSID,CHAN,SIGNAL,SECURITY dev wifi list ifname {wlan}"
+      - label: "Adapter capabilities"
+        cmd: "iw phy; iw dev {wlan} info"
+        shell: true
+      - label: "Monitor mode ON"
+        cmd: "sudo rjx-mon {wlan} on"
+        confirm: true
+      - label: "Monitor mode OFF"
+        cmd: "sudo rjx-mon {wlan} off"
+      - label: "Survey 2.4+5GHz (airodump 30s)"
+        cmd: "timeout 30 airodump-ng --band abg -w {outdir}/survey --output-format csv {mon}"
+        shell: true
+        confirm: true
+      - label: "Wardrive (kismet)"
+        cmd: "kismet -c {mon}"
+        confirm: true
+
+  - name: "WiFi-Atk"
+    icon: "ᚲ"
+    tools:
+      - label: "Target AP capture (airodump)"
+        cmd: "timeout 120 airodump-ng -c {channel} --bssid {bssid} -w {outdir}/handshake {mon}"
+        shell: true
+        confirm: true
+      - label: "Handshake/PMKID (hcxdumptool)"
+        cmd: "sudo timeout 90 hcxdumptool -i {mon} -w {outdir}/capture.pcapng"
+        confirm: true
+      - label: "Deauth clients (aireplay)"
+        cmd: "sudo aireplay-ng --deauth 10 -a {bssid} {mon}"
+        confirm: true
+      - label: "WPS scan (wash)"
+        cmd: "sudo wash -i {mon}"
+        confirm: true
+      - label: "WPS attack (reaver)"
+        cmd: "sudo reaver -i {mon} -b {bssid} -c {channel} -vv"
+        confirm: true
+      - label: "Automated audit (wifite)"
+        cmd: "sudo wifite -i {mon}"
+        confirm: true
+      - label: "Convert → hashcat 22000"
+        cmd: "hcxpcapngtool -o {outdir}/wifi.22000 {outdir}/capture.pcapng"
+      - label: "Crack WPA (hashcat)"
+        cmd: "hashcat -m 22000 {outdir}/wifi.22000 {wordlist} --quiet"
+        confirm: true
+
+  - name: "Bluetooth"
+    icon: "ᛒ"
+    tools:
+      - label: "Scan BLE (10s)"
+        cmd: "timeout 10 bluetoothctl scan on"
+        shell: true
+      - label: "Classic inquiry (hcitool)"
+        cmd: "sudo timeout 15 hcitool scan"
+        shell: true
+      - label: "BLE recon (bettercap)"
+        cmd: "sudo bettercap -eval 'ble.recon on; sleep 15; ble.show; q'"
+        confirm: true
+      - label: "Ping device (l2ping)"
+        cmd: "sudo l2ping -c 5 {target}"
+        confirm: true
+      - label: "Seen devices"
+        cmd: "bluetoothctl devices"
+
+  - name: "NFC/RFID"
+    icon: "⊕"
+    tools:
+      - label: "List NFC tag (libnfc)"
+        cmd: "nfc-list"
+      - label: "Read MIFARE (nfc-mfclassic)"
+        cmd: "nfc-mfclassic r a {outdir}/card.mfd"
+        confirm: true
+      - label: "Proxmark HF search"
+        cmd: "pm3 -c 'hf search'"
+        confirm: true
+      - label: "Proxmark LF search"
+        cmd: "pm3 -c 'lf search'"
+        confirm: true
+      - label: "Proxmark HF 14a info"
+        cmd: "pm3 -c 'hf 14a info'"
+        confirm: true
+
+  - name: "Network"
+    icon: "✜"
+    tools:
+      - label: "Capture → pcap (60s)"
+        cmd: "timeout 60 tcpdump -i {iface} -w {outdir}/cap_$(date +%s).pcap"
+        shell: true
+        confirm: true
+      - label: "Top talkers (live 30s)"
+        cmd: "timeout 30 tcpdump -i {iface} -nn -q"
+        shell: true
+      - label: "DNS queries (live 30s)"
+        cmd: "timeout 30 tcpdump -i {iface} -nn port 53"
+        shell: true
+      - label: "Interfaces + routes"
+        cmd: "ip -br addr; echo; ip route"
+        shell: true
+      - label: "Live connections"
+        cmd: "ss -tunap | head -n 40"
+        shell: true
+
+  - name: "MITM"
+    icon: "⇌"
+    tools:
+      - label: "Responder (LLMNR/NBT, 60s)"
+        cmd: "sudo timeout 60 responder -I {iface}"
+        confirm: true
+      - label: "bettercap net.recon (20s)"
+        cmd: "sudo bettercap -iface {iface} -eval 'net.recon on; sleep 20; net.show; q'"
+        confirm: true
+      - label: "bettercap ARP spoof (30s)"
+        cmd: "sudo bettercap -iface {iface} -eval 'set arp.spoof.targets {target}; arp.spoof on; sleep 30; q'"
+        confirm: true
+      - label: "mitm6 (30s)"
+        cmd: "sudo timeout 30 mitm6 -d {domain}"
+        confirm: true
+      - label: "ettercap recon (30s)"
+        cmd: "sudo timeout 30 ettercap -T -q -i {iface}"
+        confirm: true
+
+  - name: "Passwords"
+    icon: "☥"
+    tools:
+      - label: "Hydra SSH"
+        cmd: "hydra -L {userlist} -P {wordlist} ssh://{target} -t 4 -f"
+        confirm: true
+      - label: "Hydra FTP"
+        cmd: "hydra -L {userlist} -P {wordlist} ftp://{target} -t 4 -f"
+        confirm: true
+      - label: "hashcat NTLM"
+        cmd: "hashcat -m 1000 -a 0 {outdir}/hashes.txt {wordlist} --quiet"
+        confirm: true
+      - label: "john (auto)"
+        cmd: "john {outdir}/hashes.txt --wordlist={wordlist}"
+        confirm: true
+      - label: "john show cracked"
+        cmd: "john --show {outdir}/hashes.txt"
+      - label: "Identify hash (hashid)"
+        cmd: "hashid -m {outdir}/hashes.txt"
+      - label: "Wordlist from site (cewl)"
+        cmd: "cewl -d 2 -w {outdir}/cewl.txt {url}"
+
+  - name: "AD"
+    icon: "ᚨ"
+    tools:
+      - label: "netexec SMB sweep"
+        cmd: "netexec smb {subnet}"
+        confirm: true
+      - label: "netexec SMB spray"
+        cmd: "netexec smb {target} -u {userlist} -p {wordlist} --continue-on-success"
+        confirm: true
+      - label: "kerbrute userenum"
+        cmd: "kerbrute userenum -d {domain} --dc {target} {userlist}"
+        confirm: true
+      - label: "AS-REP roast (impacket)"
+        cmd: "impacket-GetNPUsers {domain}/ -usersfile {userlist} -no-pass -dc-ip {target}"
+        confirm: true
+      - label: "secretsdump"
+        cmd: "impacket-secretsdump {domain}/{user}@{target}"
+        confirm: true
+      - label: "BloodHound collect"
+        cmd: "bloodhound-python -d {domain} -c all -ns {target} -u {user}"
+        confirm: true
+
+  - name: "Exploit"
+    icon: "✕"
+    tools:
+      - label: "searchsploit term"
+        cmd: "searchsploit {domain}"
+      - label: "Metasploit console"
+        cmd: "msfconsole -q"
+        confirm: true
+      - label: "Update exploit-db"
+        cmd: "searchsploit -u"
+
+  # ------------------------------------------------------------------------
+  # SDR/RF — RECEIVE, MONITOR, DECODE and ANALYSIS only (1 kHz–6 GHz with the
+  # right front-end: RTL-SDR V4 ~0.5–1.7 GHz; add HackRF/Airspy for full span).
+  # Transmit "jam / spoof / spam / replay" functions are intentionally NOT
+  # included: operating them on licensed or shared spectrum is an FCC violation
+  # and can disrupt safety-of-life services (ADS-B, GPS, emergency comms). For
+  # lawful TX use a shielded/Faraday setup, your own licensed ham bands, or
+  # devices you own, and wire your own authorized tooling to a new entry.
+  # ------------------------------------------------------------------------
+  - name: "SDR/RF"
+    icon: "ᛉ"
+    tools:
+      # --- hardware / health ---
+      - label: "Detect SDR (V4 ID)"
+        cmd: "rtl_eeprom 2>&1 | head -n 20"
+        shell: true
+      - label: "Tuner self-test"
+        cmd: "timeout 5 rtl_test -t"
+        shell: true
+      - label: "Soapy device list"
+        cmd: "SoapySDRUtil --find"
+      # --- DragonOS-class SDR suite (receive / decode / track) ---
+      - label: "SDRangel (multi-SDR GUI)"
+        cmd: "sdrangel"
+      - label: "SatDump (satellite decode)"
+        cmd: "satdump"
+      - label: "SDRTrunk (P25 trunk monitor)"
+        cmd: "sdrtrunk"
+      - label: "gpredict (satellite tracker)"
+        cmd: "gpredict"
+      - label: "GPS: gpsd + cgps"
+        cmd: "sudo gpsd /dev/ttyACM0 -F /var/run/gpsd.sock; cgps -s"
+        shell: true
+      - label: "GNSS-SDR (software GPS)"
+        cmd: "gnss-sdr --config_file=./gnss.conf"
+        shell: true
+      - label: "gr-iridium (Iridium extract)"
+        cmd: "iridium-extractor -D 4 examples/hackrf.conf"
+        shell: true
+      - label: "UAT 978 aircraft (dump978)"
+        cmd: "dump978-fa --sdr driver=rtlsdr"
+        shell: true
+      - label: "HackRF info (if present)"
+        cmd: "hackrf_info"
+      - label: "HackRF record IQ (RX, 1M-6G)"
+        cmd: "hackrf_transfer -r {outdir}/hackrf.iq -f 433920000 -s 8000000 -n 40000000"
+        confirm: true
+      - label: "Bias-tee ON (LNA)"
+        cmd: "rtl_biast -b 1"
+        confirm: true
+      - label: "Bias-tee OFF"
+        cmd: "rtl_biast -b 0"
+      # --- spectrum / survey ---
+      - label: "Spectrum sweep (rtl_power)"
+        cmd: "timeout 20 rtl_power -f 400M:450M:1k {outdir}/sweep.csv"
+        shell: true
+      - label: "Wideband sweep 1M-6G (HackRF)"
+        cmd: "timeout 20 hackrf_sweep -f 1:6000 -w 1000000 -r {outdir}/wideband.csv"
+        shell: true
+        confirm: true
+      - label: "Spectrum waterfall (gqrx GUI)"
+        cmd: "gqrx"
+      - label: "SDR++ waterfall (GUI)"
+        cmd: "sdrpp"
+      # --- capture for offline analysis ---
+      - label: "Record IQ @433.92M (10s)"
+        cmd: "rtl_sdr -f 433920000 -s 2400000 -n 24000000 {outdir}/capture.iq"
+        confirm: true
+      - label: "Analyze capture (URH)"
+        cmd: "urh"
+      - label: "Inspect capture (inspectrum)"
+        cmd: "inspectrum {outdir}/capture.iq"
+      # --- decoders (receive-only) ---
+      - label: "ADS-B aircraft (dump1090, 30s)"
+        cmd: "timeout 30 dump1090 --interactive"
+        shell: true
+      - label: "UAT 978 aircraft (dump978, 30s)"
+        cmd: "timeout 30 dump978-fa"
+        shell: true
+      - label: "AIS ships (rtl_ais, 30s)"
+        cmd: "timeout 30 rtl_ais"
+        shell: true
+      - label: "ISM 433MHz sensors (rtl_433, 30s)"
+        cmd: "timeout 30 rtl_433 -f 433920000"
+        shell: true
+      - label: "ISM 868/915 (rtl_433, 30s)"
+        cmd: "timeout 30 rtl_433 -f 915000000"
+        shell: true
+      - label: "ACARS (acarsdec, 30s)"
+        cmd: "timeout 30 acarsdec -r 0 131.550 131.725 131.825"
+        shell: true
+      - label: "VDL2 (dumpvdl2, 30s)"
+        cmd: "timeout 30 dumpvdl2 --rtlsdr 0 136975000"
+        shell: true
+      - label: "APRS 144.39 (direwolf, 30s)"
+        cmd: "timeout 30 bash -c 'rtl_fm -f 144.39M -s 22050 | direwolf -c - -r 22050 -'"
+        shell: true
+      - label: "Pager POCSAG (multimon-ng, 30s)"
+        cmd: "timeout 30 bash -c 'rtl_fm -f 148.5M -s 22050 | multimon-ng -a POCSAG1200 -'"
+        shell: true
+      - label: "Weather sat pass (satdump live)"
+        cmd: "satdump live noaa_apt {outdir}/wxsat baseband --source rtlsdr --samplerate 2.4e6 --frequency 137.1e6"
+        confirm: true
+      - label: "GSM band scan (grgsm_scanner)"
+        cmd: "timeout 30 grgsm_scanner"
+        shell: true
+      # --- calibration + LAWFUL (licensed) transmit ---
+      - label: "ppm/TCXO calibration (rtl_test)"
+        cmd: "timeout 30 rtl_test -p"
+        shell: true
+      - label: "FT8/WSJT-X — licensed ham TX (GUI)"
+        cmd: "wsjtx"
+      - label: "fldigi — licensed ham digital TX (GUI)"
+        cmd: "fldigi"
+      - label: "GNU Radio Companion (build flowgraphs)"
+        cmd: "gnuradio-companion"
+
+  - name: "Cloud"
+    icon: "✸"
+    tools:
+      - label: "AWS audit (ScoutSuite)"
+        cmd: "scout aws"
+        confirm: true
+      - label: "AWS checks (Prowler)"
+        cmd: "prowler aws"
+        confirm: true
+      - label: "Container image scan (trivy)"
+        cmd: "trivy image {image}"
+      - label: "Filesystem scan (trivy)"
+        cmd: "trivy fs ."
+      - label: "K8s recon (kube-hunter)"
+        cmd: "kube-hunter --remote {target}"
+        confirm: true
+
+  # Android OffSec — connect a test device over ADB (your own / in-scope only).
+  - name: "Mobile"
+    icon: "ᛗ"
+    tools:
+      - label: "ADB devices"
+        cmd: "adb devices -l"
+      - label: "Installed packages (3rd-party)"
+        cmd: "adb shell pm list packages -3"
+      - label: "Pull APK of package"
+        cmd: "p=$(adb shell pm path {package} | sed 's/package://' | tr -d '\\r'); adb pull $p {apk}"
+        shell: true
+        confirm: true
+      - label: "APK badging (aapt)"
+        cmd: "aapt dump badging {apk}"
+      - label: "Decode APK (apktool)"
+        cmd: "apktool d {apk} -o {outdir}/app_src -f"
+        confirm: true
+      - label: "Decompile APK (jadx)"
+        cmd: "jadx {apk} -d {outdir}/jadx"
+        confirm: true
+      - label: "Secrets grep in source"
+        cmd: "grep -rinE 'api[_-]?key|secret|password|token|BEGIN RSA' {outdir}/app_src 2>/dev/null | head -n 40"
+        shell: true
+      - label: "Frida processes (device)"
+        cmd: "frida-ps -Ua"
+      - label: "Objection explore"
+        cmd: "objection -g {package} explore"
+        confirm: true
+      - label: "Logcat (30s)"
+        cmd: "timeout 30 adb logcat"
+        shell: true
+      - label: "MobSF (start web UI)"
+        cmd: "echo 'MobSF: docker run -it --rm -p 8000:8000 opensecurity/mobile-security-framework-mobsf'"
+        shell: true
+
+  # Marauder-style Wi-Fi/BLE recon on the Pi (ESP32 Marauder's legit features).
+  # Excludes evil-portal phishing and broadcast spam/flood DoS by design.
+  - name: "Marauder"
+    icon: "⚑"
+    tools:
+      - label: "APs + stations (airodump)"
+        cmd: "sudo timeout 30 airodump-ng {mon}"
+        shell: true
+        confirm: true
+      - label: "Probe-request sniff"
+        cmd: "sudo timeout 30 tcpdump -i {mon} -e -s 256 'type mgt subtype probe-req'"
+        shell: true
+        confirm: true
+      - label: "Packet monitor (live)"
+        cmd: "sudo timeout 20 tcpdump -i {mon} -nn"
+        shell: true
+      - label: "SSID list"
+        cmd: "nmcli -f SSID,CHAN,SIGNAL,SECURITY dev wifi list ifname {wlan}"
+      - label: "Wardrive (kismet + GPS)"
+        cmd: "kismet -c {mon}"
+        confirm: true
+      - label: "BLE + AirTag detect (bettercap)"
+        cmd: "sudo bettercap -eval 'ble.recon on; sleep 20; ble.show; q'"
+        confirm: true
+      - label: "Bluetooth classic scan"
+        cmd: "sudo timeout 15 hcitool scan"
+        shell: true
+
+  - name: "Loot"
+    icon: "✠"
+    tools:
+      - label: "List loot"
+        cmd: "ls -lh {outdir}"
+      - label: "Disk + loot size"
+        cmd: "du -sh {outdir} 2>/dev/null; df -h / | tail -1"
+        shell: true
+      - label: "Tail latest session"
+        cmd: "ls -t ~/loot/*/session-*.log | head -1 | xargs tail -n 40"
+        shell: true
+      - label: "Grep loot for IPs"
+        cmd: "grep -rhoE '([0-9]{1,3}\\.){3}[0-9]{1,3}' {outdir} | sort -u | head -n 50"
+        shell: true
+      - label: "Zip engagement"
+        cmd: "cd ~/loot && zip -r {engagement}_$(date +%Y%m%d).zip $(basename {outdir})"
+        shell: true
+      - label: "Cloud sync (rsync over SSH)"
+        cmd: "rsync -az --info=progress2 -e ssh ~/loot/ {sync_dest}"
+        confirm: true
+      - label: "Cloud sync (scp zip)"
+        cmd: "scp ~/loot/{engagement}_*.zip {sync_dest}"
+        shell: true
+        confirm: true
+      - label: "Generate report (md/html/pdf)"
+        cmd: "echo 'Use the ⎙ REPORT button in the rail — it reads this engagement log.'"
+        shell: true
+
+  - name: "System"
+    icon: "ᛟ"
+    tools:
+      - label: "Temps & throttle (Pi 5)"
+        cmd: "vcgencmd measure_temp; vcgencmd get_throttled"
+        shell: true
+      - label: "USB devices"
+        cmd: "lsusb"
+      - label: "Services health"
+        cmd: "systemctl --failed --no-pager"
+      - label: "Update tool DBs"
+        cmd: "sudo nmap --script-updatedb; sudo updatedb"
+        shell: true
+        confirm: true
+      - label: "Safe shutdown"
+        cmd: "sudo shutdown -h now"
+        confirm: true
+      - label: "Reboot"
+        cmd: "sudo reboot"
+        confirm: true

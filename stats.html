@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kraken · Stats</title>
+<style>
+  :root{--accent:#ff1f3d;--dim:#b3001b;--accent2:#ff5c6c;--amber:#ffb648;--bg:#0a0a0d;--raised:#111116;--tile:#15151b;--hot:#2a0e14;--fg:#f5f5f7;--muted:#8a8a93;--ok:#2fe24a;--mono:"DejaVu Sans Mono","Courier New",monospace;--wm:.06}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{color:var(--fg);font-family:system-ui,sans-serif;display:flex;justify-content:center;padding:6px}
+  .device{position:relative;width:100%;max-width:980px;height:min(600px,calc(100dvh - 18px));background:rgba(10,10,13,.92);border:2px solid var(--accent);border-radius:12px;overflow:hidden;box-shadow:0 0 40px rgba(255,31,61,.25);display:flex;flex-direction:column}
+  .status{height:38px;background:var(--raised);border-bottom:2px solid var(--accent);display:flex;align-items:center;gap:12px;padding:0 12px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .status b{color:var(--fg)}.pg{margin-left:auto;color:var(--accent);font-weight:800;border:2px solid var(--accent);border-radius:6px;padding:1px 9px}
+  .body{flex:1;overflow:auto;padding:12px;display:grid;grid-template-columns:260px 1fr;gap:12px}
+  @media(max-width:720px){.body{grid-template-columns:1fr}}
+  .pet{background:#050506;border:1px solid var(--dim);border-radius:10px;padding:14px;text-align:center;font-family:var(--mono)}
+  .face{font-size:40px;letter-spacing:2px;color:var(--accent2);white-space:pre;line-height:1.2;margin:6px 0}
+  .mood{color:var(--amber);font-size:13px}.name{color:var(--fg);font-weight:800;font-size:15px;letter-spacing:1px}
+  .bars{margin-top:10px;text-align:left;font-size:11px;color:var(--muted)}
+  .bar{height:7px;background:#1a1a22;border-radius:4px;margin:3px 0 7px;overflow:hidden}.bar>i{display:block;height:100%;background:linear-gradient(90deg,var(--dim),var(--accent))}
+  .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  @media(max-width:720px){.tiles{grid-template-columns:repeat(2,1fr)}}
+  .tile{background:var(--raised);border:1px solid #23232c;border-radius:9px;padding:10px}
+  .tile .n{font-family:var(--mono);font-size:22px;font-weight:800;color:var(--accent)}
+  .tile .l{font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  h3{font-family:var(--mono);color:var(--accent);font-size:12px;margin:14px 0 8px;border-bottom:1px solid var(--dim);padding-bottom:4px}
+  canvas{width:100%;height:120px;background:#050506;border:1px solid #23232c;border-radius:8px}
+  .bar2{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .btn{min-height:32px;border-radius:7px;background:var(--tile);border:1px solid #2a2a33;color:var(--fg);font-family:var(--mono);font-size:11.5px;cursor:pointer;padding:0 11px}
+  .btn:hover{border-color:var(--accent2)}.btn.gold{border-color:var(--amber);color:var(--amber)}
+  .feed{font-family:var(--mono);font-size:11px;color:#cde;background:#050506;border:1px solid #23232c;border-radius:8px;padding:8px;height:92px;overflow:auto;line-height:1.5;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="device">
+  <div class="status">🐙 <b>STATS</b> · session telemetry <span class="pg">8 / STATS</span></div>
+  <div class="body">
+    <!-- PET -->
+    <div class="pet">
+      <div class="name">KRAKEN</div>
+      <div class="face" id="face">(•‿•)</div>
+      <div class="mood" id="mood">waking up…</div>
+      <div class="bars">
+        <div>Excitement</div><div class="bar"><i id="bEx" style="width:30%"></i></div>
+        <div>Uptime</div><div class="bar"><i id="bUp" style="width:10%"></i></div>
+        <div>Channel sweep</div><div class="bar"><i id="bCh" style="width:50%"></i></div>
+      </div>
+      <div class="bar2" style="justify-content:center">
+        <button class="btn" onclick="sim()">+ simulate</button>
+        <button class="btn" onclick="newSession()">new session</button>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div>
+      <div class="tiles">
+        <div class="tile"><div class="n" id="t_net">0</div><div class="l">Networks seen</div></div>
+        <div class="tile"><div class="n" id="t_hs">0</div><div class="l">Handshakes</div></div>
+        <div class="tile"><div class="n" id="t_pcap">0</div><div class="l">PCAPs</div></div>
+        <div class="tile"><div class="n" id="t_dev">0</div><div class="l">Devices</div></div>
+        <div class="tile"><div class="n" id="t_rx">0</div><div class="l">RX logs</div></div>
+        <div class="tile"><div class="n" id="t_tx">0</div><div class="l">TX events</div></div>
+        <div class="tile"><div class="n" id="t_sess">0</div><div class="l">Sessions</div></div>
+        <div class="tile"><div class="n" id="t_up">0m</div><div class="l">Uptime</div></div>
+      </div>
+      <h3>// activity (events / min)</h3>
+      <canvas id="chart" width="680" height="120"></canvas>
+      <div class="bar2">
+        <button class="btn gold" onclick="exportStats()">⬇ Export stats (.json)</button>
+        <button class="btn" onclick="exportCSV()">CSV</button>
+        <button class="btn" onclick="document.getElementById('imp').click()">Import</button>
+        <input type="file" id="imp" accept=".json" style="display:none" onchange="importStats(event)">
+        <button class="btn" onclick="resetStats()">Reset</button>
+      </div>
+      <div class="feed" id="feed"></div>
+    </div>
+  </div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const DEF={net:0,hs:0,pcap:0,dev:0,sess:1,start:Date.now(),events:[],feed:[]};
+let S=load();
+function load(){try{const s=JSON.parse(localStorage.getItem('krakenStats'));return Object.assign({},DEF,s||{});}catch(e){return{...DEF}}}
+function save(){try{localStorage.setItem('krakenStats',JSON.stringify(S))}catch(e){}}
+function recCounts(){try{const a=JSON.parse(localStorage.getItem('krakenRecords')||'[]');
+  return{rx:a.filter(r=>r.type==='RX').length,tx:a.filter(r=>r.type==='TX').length};}catch(e){return{rx:0,tx:0}}}
+const FACES=[['(-_-) zZ','idle'],['(•‿•)','happy'],['(◕‿◕)','content'],['(ᵔᴥᵔ)','sniffing'],['(⌐■_■)','on the hunt'],['(╯°□°)╯','EXCITED!'],['(>_<)','overloaded']];
+function pet(){const c=recCounts();const total=S.net+S.hs+S.pcap+c.rx+c.tx;
+  let idx=total===0?0:total<5?1:total<15?2:total<30?3:total<60?4:total<120?5:6;
+  $('face').textContent=FACES[idx][0];$('mood').textContent=FACES[idx][1];
+  $('bEx').style.width=Math.min(100,total)+'%';
+  const up=(Date.now()-S.start)/60000;$('bUp').style.width=Math.min(100,up)+'%';
+  $('bCh').style.width=(30+Math.random()*60|0)+'%';}
+function render(){const c=recCounts();
+  $('t_net').textContent=S.net;$('t_hs').textContent=S.hs;$('t_pcap').textContent=S.pcap;$('t_dev').textContent=S.dev;
+  $('t_rx').textContent=c.rx;$('t_tx').textContent=c.tx;$('t_sess').textContent=S.sess;
+  $('t_up').textContent=((Date.now()-S.start)/60000|0)+'m';
+  $('feed').innerHTML=(S.feed||[]).slice(-40).reverse().map(f=>f).join('<br>')||'<span style="color:var(--muted)">no events yet — RX/TX on other pages feed here</span>';
+  pet();chart();}
+function chart(){const cv=$('chart'),x=cv.getContext('2d');const w=cv.width,h=cv.height;x.clearRect(0,0,w,h);
+  const ev=S.events||[];const now=Date.now();const buckets=new Array(60).fill(0);
+  ev.forEach(t=>{const m=Math.floor((now-t)/60000);if(m>=0&&m<60)buckets[59-m]++;});
+  const max=Math.max(1,...buckets);x.strokeStyle='#23232c';for(let i=0;i<=4;i++){let y=h-i/4*h;x.beginPath();x.moveTo(0,y);x.lineTo(w,y);x.stroke();}
+  x.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--accent')||'#ff1f3d';
+  const bw=w/60;buckets.forEach((v,i)=>{const bh=v/max*(h-6);x.fillRect(i*bw+1,h-bh,bw-2,bh);});}
+function bump(kind,label){S.events=(S.events||[]).concat(Date.now()).slice(-500);
+  S.feed=(S.feed||[]).concat(new Date().toLocaleTimeString()+'  '+label).slice(-60);
+  if(kind&&S[kind]!=null)S[kind]++;save();render();}
+function sim(){const k=['net','hs','pcap','dev'][Math.random()*4|0];const names={net:'network seen',hs:'handshake captured',pcap:'pcap saved',dev:'device tracked'};bump(k,'· '+names[k]);}
+function newSession(){S.sess++;S.start=Date.now();bump(null,'*** new session started');}
+function resetStats(){if(confirm('Reset all stats?')){S={...DEF,start:Date.now()};save();render();}}
+function stamp(){return new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');}
+function dl(n,d,t){const b=new Blob([d],{type:t});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=n;a.click();setTimeout(()=>URL.revokeObjectURL(u),2000);}
+function exportStats(){const c=recCounts();dl('kraken-stats-'+stamp()+'.json',JSON.stringify({...S,rx:c.rx,tx:c.tx,exported:new Date().toISOString()},null,2),'application/json');}
+function exportCSV(){const c=recCounts();const rows=[['metric','value'],['networks',S.net],['handshakes',S.hs],['pcaps',S.pcap],['devices',S.dev],['rx_logs',c.rx],['tx_events',c.tx],['sessions',S.sess],['uptime_min',(Date.now()-S.start)/60000|0]];
+  dl('kraken-stats-'+stamp()+'.csv',rows.map(r=>r.join(',')).join('\n'),'text/csv');}
+function importStats(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{const o=JSON.parse(r.result);S=Object.assign({},DEF,o);if(!S.start)S.start=Date.now();save();render();bump(null,'*** stats imported');}catch(x){alert('Bad JSON');}};r.readAsText(f);e.target.value='';}
+window.addEventListener('message',ev=>{const d=ev.data||{};const r=document.documentElement.style;
+  if(d.type==='rjxTheme'){r.setProperty('--accent',d.a);r.setProperty('--accent2',d.b);r.setProperty('--dim',d.c);}
+  if(d.type==='rjxOpt'&&d.wm!=null){r.setProperty('--wm',d.wm);}
+  if(d.type==='rjxRecord'&&d.rec){bump(null,'· '+(d.rec.type||'REC')+' '+(d.rec.freq?d.rec.freq+' MHz':(d.rec.title||'')));}});
+window.addEventListener('storage',e=>{if(e.key==='krakenRecords'||e.key==='krakenStats'){S=load();render();}});
+render();setInterval(()=>{pet();$('t_up').textContent=((Date.now()-S.start)/60000|0)+'m';},5000);
+</script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "appId": "com.strikeback.kraken",
+  "appName": "Kraken",
+  "webDir": ".",
+  "server": { "androidScheme": "https" },
+  "android": {
+    "allowMixedContent": true,
+    "orientation": "landscape"
+  },
+  "plugins": {
+    "ScreenOrientation": { "orientation": "landscape" }
+  },
+  "backgroundColor": "#0a0506"
+}

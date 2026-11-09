@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kraken · Settings</title>
+<style>
+  :root{--accent:#ff1f3d;--dim:#b3001b;--accent2:#ff5c6c;--amber:#ffb648;--bg:#0a0a0d;--raised:#111116;--tile:#15151b;--hot:#2a0e14;--fg:#f5f5f7;--muted:#8a8a93;--mono:"DejaVu Sans Mono","Courier New",monospace;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{color:var(--fg);font-family:system-ui,sans-serif;display:flex;justify-content:center;padding:6px}
+  .device{position:relative;width:100%;max-width:980px;height:min(600px,calc(100dvh - 18px));background:rgba(10,10,13,.92);border:2px solid var(--accent);border-radius:12px;overflow:hidden;box-shadow:0 0 40px rgba(255,31,61,.25);display:flex;flex-direction:column}
+  .status{height:38px;background:var(--raised);border-bottom:2px solid var(--accent);display:flex;align-items:center;gap:12px;padding:0 12px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .status b{color:var(--fg)}.pg{margin-left:auto;color:var(--accent);font-weight:800;border:2px solid var(--accent);border-radius:6px;padding:1px 9px}
+  .body{flex:1;overflow:auto;padding:14px}
+  h3{font-family:var(--mono);color:var(--accent);font-size:14px;margin:18px 0 10px;border-bottom:1px solid var(--dim);padding-bottom:5px}
+  h3:first-child{margin-top:0}
+  .themes{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+  .sw{height:52px;border-radius:8px;border:2px solid #2a2a33;cursor:pointer;display:flex;flex-direction:column;justify-content:flex-end;padding:4px 6px;font-family:var(--mono);font-size:9px;color:#fff;position:relative;overflow:hidden}
+  .sw:hover{border-color:#fff}.sw.active{border-color:#fff;box-shadow:0 0 10px rgba(255,255,255,.4)}
+  .sw .dot{position:absolute;top:6px;left:6px;width:16px;height:16px;border-radius:50%}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+  .btn{background:var(--tile);border:1px solid var(--accent);color:var(--accent);border-radius:6px;padding:7px 14px;cursor:pointer;font-family:var(--mono);font-size:12px}
+  .btn:hover{background:var(--hot)}
+  input[type=range]{accent-color:var(--accent)}
+  textarea{width:100%;height:84px;background:#050506;border:1px solid #2a2a33;color:var(--amber);border-radius:6px;font-family:var(--mono);font-size:11px;padding:8px}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .out{background:#0e0e13;border:1px solid #1d1d25;border-radius:6px;padding:8px;font-family:var(--mono);font-size:11px;color:var(--fg);white-space:pre-wrap;min-height:40px}
+  .links{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .lk{background:var(--tile);border:1px solid #2a2a33;border-radius:6px;padding:8px 10px}
+  .lk h4{font-family:var(--mono);color:var(--accent2);font-size:12px;margin-bottom:5px}
+  .lk a{display:block;color:var(--muted);text-decoration:none;font-size:11px;padding:2px 0}
+  .lk a:hover{color:var(--amber)}
+  .muted{color:var(--muted);font-size:12px;line-height:1.5}
+
+  /* ===== backdrop: black + red, faint bomb watermark ===== */
+  :root{--wm:.06}
+  body{background:#0a0506}
+  body::before{content:"";position:fixed;inset:0;z-index:-2;
+    background:radial-gradient(62vmax 62vmax at 50% 42%,rgba(255,31,61,.12),transparent 62%),
+      radial-gradient(40vmax 40vmax at 50% 105%,rgba(179,0,27,.12),transparent 60%),#070405}
+  body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:var(--wm,.06);
+    background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20200%20200%27%3E%3Cg%20fill%3D%27none%27%20stroke%3D%27%23ff1f3d%27%20stroke-width%3D%275%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M100%2034%20C74%2034%2060%2060%2062%2086%20C63%20104%2078%20112%20100%20112%20C122%20112%20137%20104%20138%2086%20C140%2060%20126%2034%20100%2034%20Z%27%2F%3E%3Cpath%20d%3D%27M70%20100%20C52%20118%2046%20146%2034%20166%27%2F%3E%3Cpath%20d%3D%27M86%20110%20C78%20140%2074%20162%2070%20184%27%2F%3E%3Cpath%20d%3D%27M100%20114%20C100%20144%20100%20166%20100%20190%27%2F%3E%3Cpath%20d%3D%27M114%20110%20C122%20140%20126%20162%20130%20184%27%2F%3E%3Cpath%20d%3D%27M130%20100%20C148%20118%20154%20146%20166%20166%27%2F%3E%3C%2Fg%3E%3Ccircle%20cx%3D%2784%27%20cy%3D%2780%27%20r%3D%277%27%20fill%3D%27%23ff5c6c%27%2F%3E%3Ccircle%20cx%3D%27116%27%20cy%3D%2780%27%20r%3D%277%27%20fill%3D%27%23ff5c6c%27%2F%3E%3C%2Fsvg%3E");background-repeat:no-repeat;
+    background-position:center 46%;background-size:min(74vmin,760px)}
+</style>
+</head>
+<body>
+  <div class="device">
+    <div class="status"><span>⚙ <b>Kraken Settings</b></span><span>themes · data · resources</span><span class="pg">SETTINGS</span></div>
+    <div class="body">
+      <h3>🎨 Color themes (30)</h3>
+      <div class="themes" id="themes"></div>
+
+      <h3>🖼 Display</h3>
+      <div class="row"><span class="muted" style="width:150px">Logo watermark</span>
+        <input type="range" min="0" max="0.25" step="0.01" value="0.06" oninput="wm(this.value)" style="width:200px">
+        <span class="muted" id="wmv">0.06</span></div>
+
+      <h3>🔌 Device manager — USB dongles</h3>
+      <div id="devtable" style="font-family:var(--mono);font-size:11.5px"></div>
+      <div class="row" style="margin-top:8px;gap:10px;flex-wrap:wrap">
+        <div style="min-width:220px"><div class="muted" style="font-size:10px;margin-bottom:3px">Active RX device</div>
+          <select id="rxdev" onchange="saveDev()" style="width:100%"></select></div>
+        <div style="min-width:220px"><div class="muted" style="font-size:10px;margin-bottom:3px">Active TX device (TX-capable only)</div>
+          <select id="txdev" onchange="saveDev()" style="width:100%"></select></div>
+      </div>
+      <div class="muted" style="font-size:10.5px;margin-top:7px;line-height:1.5">The native Pi app auto-detects attached hardware
+        via <code>lsusb</code>, <code>rtl_eeprom</code>, <code>hackrf_info</code> and serial enumeration. RX-only adapters can't be
+        chosen as a TX device. CC1101 and ESP-01S attach over a USB-UART bridge (CH340/CP210x) as a serial device.</div>
+
+      <h3>🔑 API keys</h3>
+      <div class="row" style="flex-direction:column;gap:8px;align-items:stretch">
+        <div><div class="muted" style="font-size:10px;margin-bottom:3px">Carto basemap key (Maps → Voyager layer)</div>
+          <input id="kCarto" placeholder="cb1_..." style="width:100%;background:#050506;border:1px solid #2a2a33;color:var(--fg);font-family:var(--mono);font-size:12px;border-radius:6px;padding:7px"></div>
+        <div><div class="muted" style="font-size:10px;margin-bottom:3px">WiGLE API token (Base64 of "API Name:Token" — from wigle.net → Account)</div>
+          <input id="kWigle" placeholder="paste encoded token" style="width:100%;background:#050506;border:1px solid #2a2a33;color:var(--fg);font-family:var(--mono);font-size:12px;border-radius:6px;padding:7px"></div>
+        <div><button class="btn" onclick="saveKeys()" style="border-color:var(--accent);color:var(--accent)">Save keys</button>
+          <span id="keymsg" class="muted" style="font-size:11px;margin-left:8px"></span></div>
+      </div>
+      <div class="muted" style="font-size:10.5px;margin-top:6px;line-height:1.5">Keys are stored locally in this app only (browser
+        storage / Pi config). The WiGLE plugin lives in the Map page; if the browser blocks its request (CORS), the native Pi app
+        proxies it server-side.</div>
+
+      <h3>🔒 Security &amp; lifecycle</h3>
+      <div class="row" style="gap:10px;flex-wrap:wrap">
+        <button class="btn" onclick="post({type:'rjxLock'})" style="border-color:var(--accent);color:var(--accent)">🔒 Lock now</button>
+        <button class="btn" onclick="post({type:'rjxWipe'})" style="border-color:#ff6a1f;color:#ffb648">⚠ Panic wipe / uninstall</button>
+      </div>
+      <div class="muted" style="font-size:10.5px;margin-top:6px;line-height:1.5">The lock gates app access with a code you set on
+        first launch (stored hashed on this device), and can be re-engaged anytime from the 🔒 button in the top nav. Panic wipe
+        erases all Kraken data stored on this device; on a native install also run <code>uninstall.sh</code> to remove the program,
+        its services and any generated loot/records.</div>
+
+      <h3>⇄ Export / Import</h3>
+      <div class="row">
+        <button class="btn" onclick="expSettings()">⬇ Export settings (JSON)</button>
+        <button class="btn" onclick="document.getElementById('imp').click()">⬆ Import settings</button>
+        <input type="file" id="imp" accept=".json" style="display:none" onchange="impSettings(this)">
+        <span class="muted">Theme + display options. (Loot/markers export live on the Track &amp; Signal pages.)</span>
+      </div>
+
+      <h3>📊 Data comparison</h3>
+      <div class="muted" style="margin-bottom:6px">Paste two emitter/marker JSON exports to diff them (added / removed / common by id, RSSI delta).</div>
+      <div class="cols">
+        <textarea id="dA" placeholder="dataset A (JSON array)"></textarea>
+        <textarea id="dB" placeholder="dataset B (JSON array)"></textarea>
+      </div>
+      <div class="row"><button class="btn" onclick="compare()">Compare</button></div>
+      <div class="out" id="cmp">—</div>
+
+      <h3>🔗 Reference — RF &amp; cyber / OffSec</h3>
+      <div class="links">
+        <div class="lk"><h4>RF / SDR</h4>
+          <a href="https://www.rtl-sdr.com/" target="_blank">rtl-sdr.com</a>
+          <a href="https://www.sigidwiki.com/wiki/Signal_Identification_Guide" target="_blank">Signal ID Wiki</a>
+          <a href="https://www.radioreference.com/" target="_blank">RadioReference</a>
+          <a href="https://gqrx.dk/" target="_blank">gqrx</a>
+          <a href="https://greatscottgadgets.com/hackrf/" target="_blank">HackRF One</a>
+          <a href="http://www.arrl.org/band-plan" target="_blank">ARRL band plan</a></div>
+        <div class="lk"><h4>OffSec / Cyber</h4>
+          <a href="https://www.offsec.com/" target="_blank">OffSec (OSCP…)</a>
+          <a href="https://owasp.org/www-project-top-ten/" target="_blank">OWASP Top 10</a>
+          <a href="https://attack.mitre.org/" target="_blank">MITRE ATT&amp;CK</a>
+          <a href="https://book.hacktricks.xyz/" target="_blank">HackTricks</a>
+          <a href="https://gtfobins.github.io/" target="_blank">GTFOBins</a>
+          <a href="https://www.exploit-db.com/" target="_blank">Exploit-DB</a></div>
+        <div class="lk"><h4>Distros / standards</h4>
+          <a href="https://www.kali.org/tools/" target="_blank">Kali tools</a>
+          <a href="https://www.parrotsec.org/" target="_blank">Parrot OS</a>
+          <a href="https://athenaos.org/" target="_blank">Athena OS</a>
+          <a href="https://archlinux.org/" target="_blank">Arch Linux</a>
+          <a href="https://csrc.nist.gov/publications" target="_blank">NIST publications</a>
+          <a href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog" target="_blank">CISA KEV</a></div>
+      </div>
+
+      <h3>ℹ About</h3>
+      <div class="muted">Kraken — Web Version · a Strikeback Tech front-end. Also planned: Kraken OS (Arch/Kali/Parrot/Athena-class
+        toolset in one distro) and Kraken for Android. Authorized testing only; no jam/spoof/spam, interception, or
+        tracking of private individuals.</div>
+    </div>
+  </div>
+<script>
+const THEMES=[['Strikeback Red','#ff1f3d','#ff5c6c','#b3001b'],['Crimson','#dc143c','#ff6b81','#8b0000'],
+['Scarlet','#ff2400','#ff7a5c','#a01200'],['Blood','#c21818','#e03b3b','#5c0000'],['Ember','#ff4500','#ff8a5c','#b22a00'],
+['Orange','#ff7a00','#ffab55','#b35400'],['Amber','#ffb648','#ffd38a','#b37a1f'],['Gold','#ffd700','#ffe878','#b39700'],
+['Toxic Lime','#aaff00','#ccff66','#6a9e00'],['Green','#2fe24a','#79f08f','#0b8f2a'],['Emerald','#00c878','#4fe0a8','#00895a'],
+['Teal','#00d6c2','#5ae8db','#009184'],['Cyan','#00e5ff','#66eeff','#0095a8'],['Sky','#38bdf8','#7fd4fb','#0a84c2'],
+['Azure','#2f7bff','#6fa3ff','#0b47b3'],['Blue','#3b5bff','#7f93ff','#0b1fb3'],['Indigo','#6a5bff','#9c91ff','#3a2db3'],
+['Violet','#a855f7','#c99bff','#6b21a8'],['Purple','#8b00ff','#b870ff','#5a00a8'],['Magenta','#ff00c8','#ff66de','#a80086'],
+['Hot Pink','#ff2d78','#ff7aa8','#b3004f'],['Rose','#ff5c8a','#ff9bb8','#b32d55'],['Coral','#ff6f61','#ffa194','#b33a2f'],
+['Sunset','#ff3c6e','#ff8a5c','#b31f4a'],['Vaporwave','#ff71ce','#b967ff','#01cdfe'],['Matrix','#39ff14','#9dff78','#1a8f00'],
+['Ice','#bfefff','#e6f9ff','#7fbfdf'],['Mono White','#f5f5f7','#ffffff','#9a9aa0'],['Steel','#8a9bb5','#b6c4da','#4a5a74'],
+['Gold-Red','#ff3b3b','#ffd36a','#b31f1f']];
+let CUR=0,WM=0.06;const $=id=>document.getElementById(id);
+function post(m){if(window.parent!==window)window.parent.postMessage(m,'*');}
+function themes(){const T=$('themes');T.innerHTML='';THEMES.forEach((t,i)=>{const b=document.createElement('div');
+  b.className='sw'+(i===CUR?' active':'');b.style.background='linear-gradient(135deg,'+t[3]+','+t[1]+')';
+  b.innerHTML='<div class="dot" style="background:'+t[2]+'"></div>'+t[0];
+  b.onclick=()=>{CUR=i;themes();post({type:'rjxSetTheme',idx:i});localStorage.setItem('krakenTheme',i);};T.appendChild(b);});}
+function wm(v){WM=+v;$('wmv').textContent=(+v).toFixed(2);post({type:'rjxSetOpt',wm:+v});}
+function expSettings(){const data={theme:CUR,watermark:WM};const b=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='kraken-settings.json';a.click();}
+function impSettings(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{const d=JSON.parse(r.result);if(d.theme!=null){CUR=d.theme;themes();post({type:'rjxSetTheme',idx:d.theme});}
+    if(d.watermark!=null){WM=d.watermark;post({type:'rjxSetOpt',wm:d.watermark});$('wmv').textContent=(+d.watermark).toFixed(2);}}catch(e){alert('bad JSON');}};r.readAsText(f);}
+function compare(){let A,B;try{A=JSON.parse($('dA').value);B=JSON.parse($('dB').value);}catch(e){$('cmp').textContent='Invalid JSON in one side.';return;}
+  if(!Array.isArray(A)||!Array.isArray(B)){$('cmp').textContent='Both must be JSON arrays.';return;}
+  const key=o=>o.id||o.f||o.name||JSON.stringify(o);
+  const mA=new Map(A.map(o=>[key(o),o])),mB=new Map(B.map(o=>[key(o),o]));
+  const added=[...mB.keys()].filter(k=>!mA.has(k)),removed=[...mA.keys()].filter(k=>!mB.has(k)),common=[...mA.keys()].filter(k=>mB.has(k));
+  let deltas=common.map(k=>{const a=mA.get(k),b=mB.get(k);const ra=+a.rssi,rb=+b.rssi;return (!isNaN(ra)&&!isNaN(rb))?k+': ΔRSSI '+(rb-ra).toFixed(0)+' dB':null;}).filter(Boolean).slice(0,8);
+  $('cmp').textContent='A: '+A.length+' · B: '+B.length+'\nadded ('+added.length+'): '+added.slice(0,8).join(', ')+
+    '\nremoved ('+removed.length+'): '+removed.slice(0,8).join(', ')+'\ncommon ('+common.length+')\n'+deltas.join('\n');}
+try{CUR=+localStorage.getItem('krakenTheme')||0;}catch(e){}
+themes();
+// ---- Device manager ----
+const DONGLES=[
+ ['Alfa AWUS036AC','Wi-Fi (2.4/5G, monitor+inject)','RX',''],
+ ['Alfa AWUS036ACH','Wi-Fi (2.4/5G, RTL8812AU)','RX',''],
+ ['Panda PAU0x','Wi-Fi (2.4G, monitor)','RX',''],
+ ['RTL-SDR v3','SDR 24 MHz–1.7 GHz','RX',''],
+ ['RTL-SDR v4','SDR 24 MHz–1.7 GHz (R828D)','RX',''],
+ ['RTL-SDR Blog v4','SDR 24 MHz–1.7 GHz','RX',''],
+ ['HackRF One','SDR 1 MHz–6 GHz','RX/TX','tx'],
+ ['HackRF H2M/H3M/H4M','HackRF-class transceiver','RX/TX','tx'],
+ ['CC1101 (USB-UART)','Sub-GHz 300–928 MHz','RX/TX*','tx'],
+ ['ESP-01S (USB-UART)','Wi-Fi module (serial/AT)','RX','serial'],
+ ['CH340 / CP210x bridge','USB↔UART for ESP/CC1101','bridge',''],
+ ['nRF52840 dongle','BLE / 802.15.4 sniff','RX','']
+];
+function devMgr(){
+  const t=$('devtable');
+  t.innerHTML=DONGLES.map(d=>'<div style="display:flex;gap:8px;align-items:center;padding:4px 6px;border-bottom:1px solid #1a1a22">'+
+    '<span style="flex:1"><b>'+d[0]+'</b> <span class="muted">· '+d[1]+'</span></span>'+
+    '<span style="font-size:10px;border:1px solid '+(d[2].includes('TX')?'var(--amber)':'var(--dim)')+';color:'+(d[2].includes('TX')?'var(--amber)':'var(--muted)')+';border-radius:9px;padding:0 7px">'+d[2]+'</span></div>').join('');
+  const rx=$('rxdev'),tx=$('txdev');rx.innerHTML='';tx.innerHTML='<option value="">— none —</option>';
+  DONGLES.forEach(d=>{const o=document.createElement('option');o.textContent=d[0];o.value=d[0];rx.appendChild(o);
+    if(d[2].includes('TX')){const o2=document.createElement('option');o2.textContent=d[0];o2.value=d[0];tx.appendChild(o2);}});
+  try{rx.value=localStorage.getItem('krakenRxDev')||'RTL-SDR v4';tx.value=localStorage.getItem('krakenTxDev')||'';}catch(e){}
+}
+function saveDev(){try{localStorage.setItem('krakenRxDev',$('rxdev').value);localStorage.setItem('krakenTxDev',$('txdev').value);}catch(e){}}
+// ---- API keys ----
+function loadKeys(){try{$('kCarto').value=localStorage.getItem('krakenCarto')||'cb1_5549_1_1bb1a75dd145be1b4bc70cd6';$('kWigle').value=localStorage.getItem('krakenWigle')||'';}catch(e){}}
+function saveKeys(){try{localStorage.setItem('krakenCarto',$('kCarto').value.trim());localStorage.setItem('krakenWigle',$('kWigle').value.trim());$('keymsg').textContent='saved ✓';setTimeout(()=>$('keymsg').textContent='',1500);}catch(e){$('keymsg').textContent='save failed';}}
+devMgr();loadKeys();
+window.addEventListener('message',e=>{const d=e.data||{};const r=document.documentElement.style;
+  if(d.type==='rjxTheme'){r.setProperty('--accent',d.a);r.setProperty('--accent2',d.b);r.setProperty('--dim',d.c);}
+  if(d.type==='rjxOpt'&&d.wm!=null){r.setProperty('--wm',d.wm);}});
+</script>
+</body>
+</html>

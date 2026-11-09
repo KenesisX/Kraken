@@ -1,0 +1,67 @@
+# RaspyJack-X — RECON profile (focused loadout)
+title: "Strikeback X · Recon"
+require_consent: true
+engagement: "recon"
+log_dir: "~/loot"
+scope:
+  - "192.168.0.0/16"
+  - "10.0.0.0/8"
+companion: {enable: true, bind: "0.0.0.0", port: 8088, token: "change-me"}
+notify: {ntfy_server: "https://ntfy.sh", topic: "", public_url: "", priority: "default"}
+variables:
+  iface: "eth0"
+  subnet: "192.168.1.0/24"
+  target: "192.168.1.1"
+  url: "http://192.168.1.10"
+  domain: "example.local"
+  dirlist: "/usr/share/wordlists/dirb/common.txt"
+  outdir: "/home/pi/loot/recon"
+
+categories:
+  - name: "Recon"
+    icon: "ᚱ"
+    tools:
+      - label: "Live host sweep"
+        cmd: "nmap -sn {subnet} -oN {outdir}/hosts.txt"
+      - label: "WHOIS"
+        cmd: "whois {domain}"
+      - label: "DNS recon"
+        cmd: "dnsrecon -d {domain}"
+      - label: "Subfinder"
+        cmd: "subfinder -d {domain} -silent"
+      - label: "theHarvester"
+        cmd: "theHarvester -d {domain} -b bing,crtsh,duckduckgo"
+
+  - name: "Scan"
+    icon: "✴"
+    tools:
+      - label: "Fast top-ports"
+        cmd: "nmap -T4 -F {target} -oN {outdir}/fast.txt"
+      - label: "Full TCP + scripts"
+        cmd: "nmap -p- -sV -sC {target} -oN {outdir}/full.txt"
+        confirm: true
+      - label: "Vuln scripts"
+        cmd: "nmap --script vuln {target} -oN {outdir}/vuln.txt"
+        confirm: true
+
+  - name: "Web"
+    icon: "∞"
+    tools:
+      - label: "whatweb"
+        cmd: "whatweb {url}"
+      - label: "Dir brute (gobuster)"
+        cmd: "gobuster dir -u {url} -w {dirlist} -q"
+        confirm: true
+      - label: "nuclei"
+        cmd: "nuclei -u {url} -silent"
+        confirm: true
+
+  - name: "System"
+    icon: "ᛟ"
+    tools:
+      - label: "Temps (Pi 5)"
+        cmd: "vcgencmd measure_temp; vcgencmd get_throttled"
+        shell: true
+      - label: "Reboot"
+        cmd: "sudo reboot"
+        confirm: true

