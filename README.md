@@ -7,7 +7,8 @@ transmit, device flashing, geofencing, a field notebook, and a stats dashboard â
 black & red, built to run hard but stay smooth. Ships as **web, Android (.aab),
 desktop (.exe), and a flashable Pi 5 image**.
 
-![Kraken home][(docs/screenshots/home.png)](https://kenesisx.github.io/Kraken/)
+![Kraken home]
+https://kenesisx.github.io/Kraken/
 
 > Authorized testing only. No IMSI catchers, no jam/spoof/replay RF, no evil-twin
 > or credential-harvesting tooling, no keystroke/traffic surveillance. Transmit is
